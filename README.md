@@ -1,73 +1,183 @@
-# Welcome to your Lovable project
 
-## Project info
+# Feedback System
 
-**URL**: https://lovable.dev/projects/796700cf-8587-43de-ab93-b6cb404b7bbb
+Ein schlankes, nutzerfreundliches Feedback-System mit Kunden-Landingpage und Admin-Dashboard.
 
-## How can I edit this code?
+## 🚀 Funktionen
 
-There are several ways of editing your application.
+- **Kunden-Feedback**: Einfache Sternebewertung und optionales Textfeedback
+- **Admin-Dashboard**: Übersicht, Statistiken und Verwaltung aller Bewertungen
+- **Link-Generator**: Personalisierte Feedback-Links mit QR-Codes
+- **Responsive Design**: Optimiert für Desktop und Mobile
 
-**Use Lovable**
+## 🐳 Docker Installation
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/796700cf-8587-43de-ab93-b6cb404b7bbb) and start prompting.
+### Voraussetzungen
+- Docker (Version 20.10 oder höher)
+- Docker Compose (Version 2.0 oder höher)
 
-Changes made via Lovable will be committed automatically to this repo.
+### Installation über GitHub
 
-**Use your preferred IDE**
+1. **Repository klonen**
+```bash
+git clone https://github.com/IHR-USERNAME/IHR-REPO-NAME.git
+cd IHR-REPO-NAME
+```
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+2. **Mit Docker Compose starten**
+```bash
+docker-compose up -d
+```
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+3. **Anwendung öffnen**
+- Kunden-Feedback: http://localhost:3000
+- Admin-Dashboard: http://localhost:3000/admin
 
-Follow these steps:
+### Alternative: Direkter Docker Build
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+```bash
+# Image erstellen
+docker build -t feedback-system .
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Container starten
+docker run -d -p 3000:80 --name feedback-app feedback-system
+```
 
-# Step 3: Install the necessary dependencies.
-npm i
+### Entwicklungsmodus
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+Für die lokale Entwicklung ohne Docker:
+
+```bash
+# Dependencies installieren
+npm install
+
+# Entwicklungsserver starten
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## 🔧 Konfiguration
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Umgebungsvariablen
 
-**Use GitHub Codespaces**
+Erstellen Sie eine `.env` Datei für lokale Konfiguration:
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```env
+# Beispiel-Konfiguration
+VITE_API_URL=http://localhost:3000/api
+VITE_APP_TITLE=Feedback System
+```
 
-## What technologies are used for this project?
+### Admin-Zugang
 
-This project is built with:
+**Standard-Login:**
+- Benutzername: `admin`
+- Passwort: `password123`
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+> ⚠️ **Wichtig**: Ändern Sie das Admin-Passwort in der Produktionsumgebung!
 
-## How can I deploy this project?
+## 📡 API-Endpunkte für n8n Integration
 
-Simply open [Lovable](https://lovable.dev/projects/796700cf-8587-43de-ab93-b6cb404b7bbb) and click on Share -> Publish.
+### Links generieren
+```http
+POST /api/links
+Content-Type: application/json
 
-## Can I connect a custom domain to my Lovable project?
+{
+  "customerNumber": "KD-12345",
+  "customerName": "Max Mustermann",
+  "concern": "Internet-Freischaltung"
+}
+```
 
-Yes, you can!
+**Response:**
+```json
+{
+  "id": "unique-link-id",
+  "feedbackUrl": "http://localhost:3000/?customer=KD-12345&name=Max+Mustermann&concern=Internet-Freischaltung&text=K%C3%BCrzlich+wurde+Ihr+Internet+freigeschaltet%2C+wie+war+Ihre+Erfahrung%3F&ref=unique-link-id",
+  "qrCodeDataUrl": "data:image/svg+xml;base64,..."
+}
+```
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+### Link-Details abrufen
+```http
+GET /api/links/{id}
+```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+### Feedback abrufen
+```http
+GET /api/feedback
+```
+
+## 🔄 n8n Workflow-Integration
+
+### Beispiel-Workflow für automatischen E-Mail-Versand:
+
+1. **Trigger**: Webhook oder Schedule
+2. **HTTP Request**: POST zu `/api/links` mit Kundendaten
+3. **E-Mail senden**: QR-Code und Link an Kunde
+4. **Daten speichern**: Link-ID für Tracking
+
+### n8n HTTP Request Node Konfiguration:
+```json
+{
+  "method": "POST",
+  "url": "http://localhost:3000/api/links",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": {
+    "customerNumber": "{{ $json.customerNumber }}",
+    "customerName": "{{ $json.customerName }}",
+    "concern": "{{ $json.concern }}"
+  }
+}
+```
+
+## 🛠️ Wartung
+
+### Container-Logs anzeigen
+```bash
+docker-compose logs -f feedback-app
+```
+
+### Container neustarten
+```bash
+docker-compose restart feedback-app
+```
+
+### Updates einspielen
+```bash
+git pull origin main
+docker-compose down
+docker-compose up -d --build
+```
+
+### Datenbank-Backup (falls PostgreSQL verwendet)
+```bash
+docker-compose exec postgres pg_dump -U feedback_user feedback_db > backup.sql
+```
+
+## 🔒 Sicherheit
+
+- SSL/TLS für Produktionsumgebung konfigurieren
+- Admin-Passwort ändern
+- Firewall-Regeln für Port 3000 beachten
+- Regelmäßige Updates der Docker-Images
+
+## 📊 Monitoring
+
+Für Produktionsumgebungen empfohlen:
+- Container-Monitoring (z.B. Portainer)
+- Log-Aggregation (z.B. ELK Stack)
+- Uptime-Monitoring
+
+## 🤝 Support
+
+Bei Problemen:
+1. Container-Logs prüfen: `docker-compose logs`
+2. Port-Verfügbarkeit prüfen: `netstat -tulpn | grep 3000`
+3. Docker-Status prüfen: `docker-compose ps`
+
+## 📝 Lizenz
+
+[Ihre Lizenz hier einfügen]
