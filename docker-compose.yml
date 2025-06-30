@@ -1,14 +1,17 @@
+
 version: '3.8'
 
 services:
-  feedback-app:
+  frontend:
     build: .
     ports:
       - "3000:80"
     environment:
       - NODE_ENV=production
     restart: unless-stopped
-    container_name: feedback-system
+    container_name: feedback-frontend
+    depends_on:
+      - backend
     
   backend:
     build: ./backend
@@ -18,7 +21,10 @@ services:
       - DATABASE_URL=postgres://feedback_user:feedback_pass@db:5432/feedback_db
       - PORT=4000
     depends_on:
-      - db
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    container_name: feedback-backend
 
   db:
     image: postgres:15
@@ -31,9 +37,12 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-
-# volumes:
-#   postgres_data:
+    container_name: feedback-db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U feedback_user -d feedback_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   pgdata:
