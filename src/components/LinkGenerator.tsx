@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,11 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { QrCode, Link, Copy, Download, Plus, Code, Trash2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-<<<<<<< HEAD
-import { createLink, fetchLinks, fetchLinkById } from '@/lib/api';
-=======
 import { createLink, fetchLinks, deleteLink } from '@/lib/api';
->>>>>>> 4315644b235e71244efeeb5d23ae7976bf223df3
 
 interface FeedbackLink {
   id: string;
@@ -90,31 +87,14 @@ const LinkGenerator = () => {
     setIsGenerating(true);
 
     try {
-<<<<<<< HEAD
-      const baseUrl = window.location.origin;
-      // Backend erzeugt jetzt die ID und gibt sie zurück
-=======
       console.log('LinkGenerator: Creating link with data:', { customerNumber, concern, firstName, lastName });
       
->>>>>>> 4315644b235e71244efeeb5d23ae7976bf223df3
       const newLink = await createLink({
         customerNumber,
         concern,
         firstName,
         lastName
       });
-<<<<<<< HEAD
-      // Feedback-Link und QR-Code-URL lokal generieren
-      const feedbackUrl = `${baseUrl}/?ref=${newLink.id}`;
-      const qrCodeUrl = generateQRCode(feedbackUrl);
-      // Links-Liste aktualisieren (mit lokal generierten URLs)
-      const links = await fetchLinks();
-      setGeneratedLinks(links.map(link => ({
-        ...link,
-        feedbackUrl: `${baseUrl}/?ref=${link.id}`,
-        qrCodeUrl: generateQRCode(`${baseUrl}/?ref=${link.id}`)
-      })));
-=======
       
       console.log('LinkGenerator: Successfully created link:', newLink);
       
@@ -125,7 +105,6 @@ const LinkGenerator = () => {
       setGeneratedLinks(links);
       
       // Clear form
->>>>>>> 4315644b235e71244efeeb5d23ae7976bf223df3
       setCustomerNumber('');
       setConcern('');
       setFirstName('');
@@ -151,6 +130,10 @@ const LinkGenerator = () => {
     if (deletingId) {
       console.log('LinkGenerator: Delete already in progress, ignoring request');
       return; // Prevent multiple simultaneous deletions
+    }
+    
+    if (!window.confirm('Diesen Link wirklich löschen?')) {
+      return;
     }
     
     console.log('LinkGenerator: handleDelete called with id:', id);
@@ -236,20 +219,6 @@ const LinkGenerator = () => {
     'Kündigung',
     'Sonstiges'
   ];
-
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Diesen Link wirklich löschen?')) return;
-    try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/feedback-links/${id}`, {
-        method: 'DELETE'
-      });
-      if (!res.ok) throw new Error('Fehler beim Löschen');
-      setGeneratedLinks(generatedLinks.filter(link => link.id !== id));
-      toast({ title: 'Gelöscht', description: 'Link wurde gelöscht.' });
-    } catch {
-      toast({ title: 'Fehler', description: 'Link konnte nicht gelöscht werden.', variant: 'destructive' });
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -509,13 +478,6 @@ const LinkGenerator = () => {
                       </div>
                     </div>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => handleDelete(link.id)}
-                  >
-                    Löschen
-                  </Button>
                 </div>
               ))}
             </div>
