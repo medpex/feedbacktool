@@ -1,17 +1,23 @@
-
 version: '3.8'
 
 services:
   feedback-app:
-    build: .
+    build:
+      context: .
+      # Baue erst im „builder“, liefere dann nur das Production‐Artefakt aus der Runner‐Stage
+      target: runner
+      args:
+        # Damit npm ci im Builder auch devDependencies installiert
+        NODE_ENV: development
     ports:
       - "3000:80"
     environment:
+      # Zur Laufzeit verwendest Du Production
       - NODE_ENV=production
     restart: unless-stopped
     container_name: feedback-system
-    
-  # Optional: Add a database service if needed in the future
+
+  # Optional: Datenbank-Service
   # postgres:
   #   image: postgres:15-alpine
   #   environment:
