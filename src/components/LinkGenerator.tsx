@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -5,9 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { QrCode, Link, Copy, Download, Plus, Code } from 'lucide-react';
+import { QrCode, Link, Copy, Download, Plus, Code, Trash2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { createLink, fetchLinks } from '@/lib/api';
+import { createLink, fetchLinks, deleteLink } from '@/lib/api';
 
 interface FeedbackLink {
   id: string;
@@ -29,17 +30,23 @@ const LinkGenerator = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedLinks, setGeneratedLinks] = useState<FeedbackLink[]>([]);
   const [showApiDocs, setShowApiDocs] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // Load existing links from localStorage
+  // Load existing links from API
   React.useEffect(() => {
+    console.log('Loading feedback links...');
     fetchLinks()
-      .then(setGeneratedLinks)
-      .catch(() => setGeneratedLinks([]));
+      .then(links => {
+        console.log('Loaded links:', links);
+        setGeneratedLinks(links);
+      })
+      .catch(error => {
+        console.error('Error loading links:', error);
+        setGeneratedLinks([]);
+      });
   }, []);
 
   const generateQRCode = (url: string): string => {
-    // In a real implementation, you would use a QR code library
-    // For now, we'll use a placeholder QR code service
     return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
   };
 
@@ -71,29 +78,33 @@ const LinkGenerator = () => {
     setIsGenerating(true);
 
     try {
-      const baseUrl = window.location.origin;
-      const concernText = getConcernText(concern);
-      const feedbackUrl = `${baseUrl}/?customer=${encodeURIComponent(customerNumber)}&name=${encodeURIComponent(`${firstName} ${lastName}`)}&concern=${encodeURIComponent(concern)}&text=${encodeURIComponent(concernText)}`;
-      const qrCodeUrl = generateQRCode(feedbackUrl);
+      console.log('Creating link with data:', { customerNumber, concern, firstName, lastName });
+      
       const newLink = await createLink({
         customerNumber,
         concern,
         firstName,
-        lastName,
-        feedbackUrl,
-        qrCodeUrl
+        lastName
       });
+      
+      console.log('Created link:', newLink);
+      
+      // Reload all links to get the updated list
       const links = await fetchLinks();
       setGeneratedLinks(links);
+      
+      // Clear form
       setCustomerNumber('');
       setConcern('');
       setFirstName('');
       setLastName('');
+      
       toast({
         title: "Link generiert",
         description: "Feedback-Link und QR-Code wurden erfolgreich erstellt.",
       });
     } catch (error) {
+      console.error('Error creating link:', error);
       toast({
         title: "Fehler",
         description: "Beim Generieren des Links ist ein Fehler aufgetreten.",
@@ -101,6 +112,35 @@ const LinkGenerator = () => {
       });
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (deletingId) return; // Prevent multiple simultaneous deletions
+    
+    setDeletingId(id);
+    
+    try {
+      console.log('Deleting link with id:', id);
+      await deleteLink(id);
+      
+      // Reload links after successful deletion
+      const links = await fetchLinks();
+      setGeneratedLinks(links);
+      
+      toast({
+        title: "Link gelöscht",
+        description: "Der Feedback-Link wurde erfolgreich gelöscht.",
+      });
+    } catch (error) {
+      console.error('Error deleting link:', error);
+      toast({
+        title: "Fehler beim Löschen",
+        description: error instanceof Error ? error.message : "Beim Löschen des Links ist ein Fehler aufgetreten.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -325,6 +365,16 @@ const LinkGenerator = () => {
                       }`}>
                         {link.used ? 'Verwendet' : 'Offen'}
                       </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDelete(link.id)}
+                        disabled={deletingId === link.id}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        {deletingId === link.id ? 'Lösche...' : 'Löschen'}
+                      </Button>
                     </div>
                   </div>
                   
