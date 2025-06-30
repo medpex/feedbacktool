@@ -1,22 +1,23 @@
+
 export interface Feedback {
   id: string;
   rating: number;
   comment: string;
   timestamp: string;
   customer: string;
-  customerName: string;
+  customer_name: string;
   concern: string;
-  refId: string;
+  ref_id: string;
 }
 
 export interface FeedbackLink {
   id: string;
-  customerNumber: string;
+  customer_number: string;
   concern: string;
-  firstName: string;
-  lastName: string;
-  feedbackUrl: string;
-  qrCodeUrl: string;
-  createdAt: string;
+  first_name: string;
+  last_name: string;
+  feedback_url: string;
+  qr_code_url: string;
+  created_at: string;
   used: boolean;
-} 
+}
