@@ -5,7 +5,9 @@ WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
-RUN npm ci
+
+# Use npm install instead of npm ci to resolve version conflicts
+RUN npm install
 
 # Copy source code
 COPY . .
@@ -20,7 +22,7 @@ WORKDIR /app
 
 # Copy package files and install production dependencies
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm install --production
 
 # Copy built application
 COPY --from=build /app/dist ./dist
