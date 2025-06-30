@@ -1,4 +1,3 @@
-
 import { Router, Request, Response } from 'express';
 import { pool } from './db';
 import { Feedback, FeedbackLink } from './models';
@@ -8,39 +7,24 @@ const router = Router();
 
 // POST /api/feedback-links
 router.post('/feedback-links', async (req: Request, res: Response) => {
-  console.log('POST /api/feedback-links body:', req.body);
-  const { customerNumber, concern, firstName, lastName, feedbackUrl, qrCodeUrl } = req.body;
-  
-  if (!customerNumber || !concern || !firstName || !lastName || !feedbackUrl || !qrCodeUrl) {
-    console.log('Missing fields:', { customerNumber, concern, firstName, lastName, feedbackUrl: !!feedbackUrl, qrCodeUrl: !!qrCodeUrl });
+  const { customerNumber, concern, firstName, lastName } = req.body;
+  if (!customerNumber || !concern || !firstName || !lastName) {
     return res.status(400).json({ success: false, error: 'Missing fields' });
   }
-  
   const id = uuidv4();
+  const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+  const feedbackUrl = `${baseUrl}/?ref=${id}`;
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(feedbackUrl)}`;
   const createdAt = new Date().toISOString();
-  
   try {
-    console.log('Inserting into database:', { id, customerNumber, concern, firstName, lastName });
     await pool.query(
       `INSERT INTO feedback_links (id, customer_number, concern, first_name, last_name, feedback_url, qr_code_url, created_at, used)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
       [id, customerNumber, concern, firstName, lastName, feedbackUrl, qrCodeUrl, createdAt, false]
     );
-    
-    console.log('Successfully inserted feedback link:', id);
-    res.json({ 
-      success: true, 
-      data: { 
-        id, 
-        feedbackUrl, 
-        qrCodeUrl, 
-        concernText: concern, 
-        createdAt 
-      } 
-    });
+    res.json({ success: true, data: { id, feedbackUrl, qrCodeUrl, concernText: concern, createdAt } });
   } catch (err) {
-    console.error('DB error (feedback-links):', err);
-    res.status(500).json({ success: false, error: 'Database error', details: err instanceof Error ? err.message : 'Unknown error' });
+    res.status(500).json({ success: false, error: 'DB error' });
   }
 });
 
@@ -132,6 +116,26 @@ router.get('/feedback', async (_req: Request, res: Response) => {
   } catch (err) {
     console.error('DB error (get feedback):', err);
     res.status(500).json({ success: false, error: 'Database error', details: err instanceof Error ? err.message : 'Unknown error' });
+  }
+});
+
+// DELETE /api/feedback-links/:id
+router.delete('/feedback-links/:id', async (req: Request, res: Response) => {
+  const { id } = req.params;
+  try {
+    // Prüfe, ob Feedbacks mit ref_id existieren
+    const feedbackResult = await pool.query('SELECT COUNT(*) FROM feedback WHERE ref_id = $1', [id]);
+    if (parseInt(feedbackResult.rows[0].count, 10) > 0) {
+      return res.status(400).json({ success: false, error: 'Es existiert Feedback zu diesem Link. Löschen nicht möglich.' });
+    }
+    // Lösche den Link
+    const result = await pool.query('DELETE FROM feedback_links WHERE id = $1', [id]);
+    if (result.rowCount === 0) {
+      return res.status(404).json({ success: false, error: 'Not found' });
+    }
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'DB error' });
   }
 });
 
