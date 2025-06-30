@@ -1,33 +1,38 @@
+# ─── Builder Stage ─────────────────────────────────────────────────────────────
+FROM node:18-alpine AS builder
 
-# Multi-stage build for optimized production image
-FROM node:18-alpine as builder
-
-# Set working directory
+# Arbeitsverzeichnis
 WORKDIR /app
 
-# Copy package files
+# Build-Argument, damit npm ci alle deps installiert
+ARG NODE_ENV=development
+ENV NODE_ENV=${NODE_ENV}
+
+# Nur package-Manifeste kopieren und alle Dependencies installieren
 COPY package*.json ./
+RUN npm ci
 
-# Install dependencies
-RUN npm ci --only=production
-
-# Copy source code
+# Quellcode kopieren und Anwendung bauen
 COPY . .
-
-# Build the application
 RUN npm run build
 
-# Production stage
-FROM nginx:alpine
+# Production-Deps reduzieren (optional, reduziert node_modules)
+RUN npm prune --production
 
-# Copy built application from builder stage
+# ─── Production Stage mit Nginx ───────────────────────────────────────────────
+FROM nginx:alpine AS runner
+
+# Dist-Ordner aus dem Builder übernehmen
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Copy custom nginx configuration
+# Optional: node_modules, falls Du SSR oder API-Calls brauchst (entfällt bei purem Static-Build)
+# COPY --from=builder /app/node_modules /app/node_modules
+
+# Eigene Nginx-Config einbinden
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Expose port 80
+# Port freigeben
 EXPOSE 80
 
-# Start nginx
+# Nginx starten
 CMD ["nginx", "-g", "daemon off;"]
