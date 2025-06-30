@@ -5,9 +5,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { QrCode, Link, Copy, Download, Plus, Code } from 'lucide-react';
+import { QrCode, Link, Copy, Download, Plus, Code, Trash2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+<<<<<<< HEAD
 import { createLink, fetchLinks, fetchLinkById } from '@/lib/api';
+=======
+import { createLink, fetchLinks, deleteLink } from '@/lib/api';
+>>>>>>> 4315644b235e71244efeeb5d23ae7976bf223df3
 
 interface FeedbackLink {
   id: string;
@@ -29,17 +33,29 @@ const LinkGenerator = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedLinks, setGeneratedLinks] = useState<FeedbackLink[]>([]);
   const [showApiDocs, setShowApiDocs] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // Load existing links from localStorage
+  // Load existing links from API
   React.useEffect(() => {
+    console.log('LinkGenerator: Component mounted, loading feedback links...');
+    console.log('LinkGenerator: Current API_URL from env:', import.meta.env.VITE_API_URL);
     fetchLinks()
-      .then(setGeneratedLinks)
-      .catch(() => setGeneratedLinks([]));
+      .then(links => {
+        console.log('LinkGenerator: Successfully loaded links:', links);
+        setGeneratedLinks(links);
+      })
+      .catch(error => {
+        console.error('LinkGenerator: Error loading links:', error);
+        setGeneratedLinks([]);
+        toast({
+          title: "Fehler beim Laden",
+          description: `Konnte Links nicht laden: ${error.message}`,
+          variant: "destructive",
+        });
+      });
   }, []);
 
   const generateQRCode = (url: string): string => {
-    // In a real implementation, you would use a QR code library
-    // For now, we'll use a placeholder QR code service
     return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
   };
 
@@ -59,7 +75,10 @@ const LinkGenerator = () => {
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('LinkGenerator: handleGenerate called with:', { customerNumber, concern, firstName, lastName });
+    
     if (!customerNumber || !concern || !firstName || !lastName) {
+      console.log('LinkGenerator: Validation failed - missing fields');
       toast({
         title: "Fehler",
         description: "Bitte füllen Sie alle Felder aus.",
@@ -71,14 +90,20 @@ const LinkGenerator = () => {
     setIsGenerating(true);
 
     try {
+<<<<<<< HEAD
       const baseUrl = window.location.origin;
       // Backend erzeugt jetzt die ID und gibt sie zurück
+=======
+      console.log('LinkGenerator: Creating link with data:', { customerNumber, concern, firstName, lastName });
+      
+>>>>>>> 4315644b235e71244efeeb5d23ae7976bf223df3
       const newLink = await createLink({
         customerNumber,
         concern,
         firstName,
         lastName
       });
+<<<<<<< HEAD
       // Feedback-Link und QR-Code-URL lokal generieren
       const feedbackUrl = `${baseUrl}/?ref=${newLink.id}`;
       const qrCodeUrl = generateQRCode(feedbackUrl);
@@ -89,22 +114,72 @@ const LinkGenerator = () => {
         feedbackUrl: `${baseUrl}/?ref=${link.id}`,
         qrCodeUrl: generateQRCode(`${baseUrl}/?ref=${link.id}`)
       })));
+=======
+      
+      console.log('LinkGenerator: Successfully created link:', newLink);
+      
+      // Reload all links to get the updated list
+      console.log('LinkGenerator: Reloading all links...');
+      const links = await fetchLinks();
+      console.log('LinkGenerator: Reloaded links:', links);
+      setGeneratedLinks(links);
+      
+      // Clear form
+>>>>>>> 4315644b235e71244efeeb5d23ae7976bf223df3
       setCustomerNumber('');
       setConcern('');
       setFirstName('');
       setLastName('');
+      
       toast({
         title: "Link generiert",
         description: "Feedback-Link und QR-Code wurden erfolgreich erstellt.",
       });
     } catch (error) {
+      console.error('LinkGenerator: Error creating link:', error);
       toast({
         title: "Fehler",
-        description: "Beim Generieren des Links ist ein Fehler aufgetreten.",
+        description: `Beim Generieren des Links ist ein Fehler aufgetreten: ${error instanceof Error ? error.message : 'Unbekannter Fehler'}`,
         variant: "destructive",
       });
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (deletingId) {
+      console.log('LinkGenerator: Delete already in progress, ignoring request');
+      return; // Prevent multiple simultaneous deletions
+    }
+    
+    console.log('LinkGenerator: handleDelete called with id:', id);
+    setDeletingId(id);
+    
+    try {
+      console.log('LinkGenerator: Deleting link with id:', id);
+      await deleteLink(id);
+      console.log('LinkGenerator: Successfully deleted link:', id);
+      
+      // Reload links after successful deletion
+      console.log('LinkGenerator: Reloading links after deletion...');
+      const links = await fetchLinks();
+      console.log('LinkGenerator: Reloaded links after deletion:', links);
+      setGeneratedLinks(links);
+      
+      toast({
+        title: "Link gelöscht",
+        description: "Der Feedback-Link wurde erfolgreich gelöscht.",
+      });
+    } catch (error) {
+      console.error('LinkGenerator: Error deleting link:', error);
+      toast({
+        title: "Fehler beim Löschen",
+        description: error instanceof Error ? error.message : "Beim Löschen des Links ist ein Fehler aufgetreten.",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -178,6 +253,17 @@ const LinkGenerator = () => {
 
   return (
     <div className="space-y-6">
+      {/* Debug Info */}
+      <Card className="bg-yellow-50 border-yellow-200">
+        <CardContent className="pt-4">
+          <p className="text-sm text-yellow-800">
+            <strong>Debug Info:</strong> API URL = {import.meta.env.VITE_API_URL || '/api'} | 
+            Links geladen: {generatedLinks.length} | 
+            Browser URL: {window.location.origin}
+          </p>
+        </CardContent>
+      </Card>
+
       {/* API Documentation */}
       <Card>
         <CardHeader>
@@ -372,6 +458,16 @@ const LinkGenerator = () => {
                       }`}>
                         {link.used ? 'Verwendet' : 'Offen'}
                       </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDelete(link.id)}
+                        disabled={deletingId === link.id}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        {deletingId === link.id ? 'Lösche...' : 'Löschen'}
+                      </Button>
                     </div>
                   </div>
                   
