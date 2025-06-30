@@ -6,8 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { QrCode, Link, Copy, Download, Plus } from 'lucide-react';
-import { toast } from '@/components/ui/use-toast';
+import { QrCode, Link, Copy, Download, Plus, Code } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 
 interface FeedbackLink {
   id: string;
@@ -28,6 +28,7 @@ const LinkGenerator = () => {
   const [lastName, setLastName] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedLinks, setGeneratedLinks] = useState<FeedbackLink[]>([]);
+  const [showApiDocs, setShowApiDocs] = useState(false);
 
   // Load existing links from localStorage
   React.useEffect(() => {
@@ -41,6 +42,19 @@ const LinkGenerator = () => {
     // In a real implementation, you would use a QR code library
     // For now, we'll use a placeholder QR code service
     return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
+  };
+
+  const getConcernText = (concern: string): string => {
+    const concernTexts: Record<string, string> = {
+      'Internet-Freischaltung': 'Kürzlich wurde Ihr Internet freigeschaltet. Wie war Ihre Erfahrung mit unserem Service?',
+      'Störung': 'Wir haben Ihre gemeldete Störung bearbeitet. Wie zufrieden sind Sie mit der Lösung?',
+      'Servicebesuch': 'Unser Techniker war bei Ihnen vor Ort. Wie bewerten Sie den Servicebesuch?',
+      'Beratung': 'Sie haben eine Beratung bei uns erhalten. Wie hilfreich war unser Beratungsgespräch?',
+      'Rechnung': 'Bezüglich Ihrer Rechnungsanfrage: Wie zufrieden sind Sie mit der Bearbeitung?',
+      'Kündigung': 'Ihre Kündigung wurde bearbeitet. Wie bewerten Sie unseren Kündigungsprozess?',
+      'Sonstiges': 'Wie war Ihre Erfahrung mit unserem Service?'
+    };
+    return concernTexts[concern] || 'Wie war Ihre Erfahrung mit unserem Service?';
   };
 
   const handleGenerate = async (e: React.FormEvent) => {
@@ -61,9 +75,10 @@ const LinkGenerator = () => {
       // Generate unique ID
       const id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
       
-      // Create feedback URL with parameters
+      // Create feedback URL with parameters including concern text
       const baseUrl = window.location.origin;
-      const feedbackUrl = `${baseUrl}/?ref=${id}&customer=${encodeURIComponent(customerNumber)}&name=${encodeURIComponent(`${firstName} ${lastName}`)}&concern=${encodeURIComponent(concern)}`;
+      const concernText = getConcernText(concern);
+      const feedbackUrl = `${baseUrl}/?ref=${id}&customer=${encodeURIComponent(customerNumber)}&name=${encodeURIComponent(`${firstName} ${lastName}`)}&concern=${encodeURIComponent(concern)}&text=${encodeURIComponent(concernText)}`;
       
       // Generate QR code URL
       const qrCodeUrl = generateQRCode(feedbackUrl);
@@ -133,6 +148,91 @@ const LinkGenerator = () => {
 
   return (
     <div className="space-y-6">
+      {/* API Documentation */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Code className="w-5 h-5" />
+            API-Dokumentation für n8n Integration
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowApiDocs(!showApiDocs)}
+            >
+              {showApiDocs ? 'Ausblenden' : 'Anzeigen'}
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        {showApiDocs && (
+          <CardContent className="space-y-4">
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-semibold mb-2">POST /api/feedback-links</h4>
+              <p className="text-sm text-gray-600 mb-2">Erstellt einen neuen Feedback-Link</p>
+              <div className="bg-white p-3 rounded border">
+                <pre className="text-xs overflow-x-auto">
+{`{
+  "customerNumber": "K-12345",
+  "firstName": "Max",
+  "lastName": "Mustermann",
+  "concern": "Internet-Freischaltung"
+}`}
+                </pre>
+              </div>
+              <p className="text-sm text-gray-600 mt-2 mb-2">Response:</p>
+              <div className="bg-white p-3 rounded border">
+                <pre className="text-xs overflow-x-auto">
+{`{
+  "success": true,
+  "data": {
+    "id": "1703123456789abc123",
+    "feedbackUrl": "https://yourdomain.com/?ref=...",
+    "qrCodeUrl": "https://api.qrserver.com/v1/create-qr-code/...",
+    "concernText": "Kürzlich wurde Ihr Internet freigeschaltet...",
+    "createdAt": "2024-06-30T10:00:00.000Z"
+  }
+}`}
+                </pre>
+              </div>
+            </div>
+            
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h4 className="font-semibold mb-2">GET /api/feedback-links/:id</h4>
+              <p className="text-sm text-gray-600 mb-2">Ruft Details eines Feedback-Links ab</p>
+              <div className="bg-white p-3 rounded border">
+                <pre className="text-xs overflow-x-auto">
+{`{
+  "success": true,
+  "data": {
+    "id": "1703123456789abc123",
+    "customerNumber": "K-12345",
+    "firstName": "Max",
+    "lastName": "Mustermann",
+    "concern": "Internet-Freischaltung",
+    "feedbackUrl": "https://yourdomain.com/?ref=...",
+    "qrCodeUrl": "https://api.qrserver.com/v1/create-qr-code/...",
+    "used": false,
+    "createdAt": "2024-06-30T10:00:00.000Z"
+  }
+}`}
+                </pre>
+              </div>
+            </div>
+
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h4 className="font-semibold mb-2">n8n Workflow Beispiel</h4>
+              <p className="text-sm text-gray-600 mb-2">1. HTTP Request Node konfigurieren:</p>
+              <ul className="text-sm text-gray-600 list-disc list-inside space-y-1">
+                <li>Method: POST</li>
+                <li>URL: https://ihre-domain.com/api/feedback-links</li>
+                <li>Headers: Content-Type: application/json</li>
+                <li>Body: JSON mit customerNumber, firstName, lastName, concern</li>
+              </ul>
+              <p className="text-sm text-gray-600 mt-2">2. Response enthält feedbackUrl und qrCodeUrl für E-Mail-Versand</p>
+            </div>
+          </CardContent>
+        )}
+      </Card>
+
       {/* Generator Form */}
       <Card>
         <CardHeader>
@@ -193,6 +293,14 @@ const LinkGenerator = () => {
                 />
               </div>
             </div>
+
+            {/* Preview des Bewertungstexts */}
+            {concern && (
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <Label className="text-sm font-medium text-blue-900">Vorschau Bewertungstext:</Label>
+                <p className="text-sm text-blue-800 mt-1">{getConcernText(concern)}</p>
+              </div>
+            )}
             
             <Button 
               type="submit" 
@@ -223,6 +331,9 @@ const LinkGenerator = () => {
                       <p className="text-sm text-gray-600">{link.concern}</p>
                       <p className="text-xs text-gray-500">
                         Erstellt: {new Date(link.createdAt).toLocaleDateString('de-DE')}
+                      </p>
+                      <p className="text-xs text-blue-600 mt-1">
+                        Text: {getConcernText(link.concern)}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">

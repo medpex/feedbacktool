@@ -13,6 +13,14 @@ const CustomerFeedback = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
+  // URL Parameter auslesen
+  const urlParams = new URLSearchParams(window.location.search);
+  const customerNumber = urlParams.get('customer') || '';
+  const customerName = urlParams.get('name') || '';
+  const concern = urlParams.get('concern') || '';
+  const concernText = urlParams.get('text') || 'Wie war Ihre Erfahrung mit unserem Service?';
+  const refId = urlParams.get('ref') || '';
+
   const handleRatingSubmit = () => {
     if (rating > 0) {
       setStep(2);
@@ -31,12 +39,24 @@ const CustomerFeedback = () => {
       rating,
       comment: feedback,
       timestamp: new Date().toISOString(),
-      customer: 'Anonymous'
+      customer: customerNumber || 'Anonymous',
+      customerName,
+      concern,
+      refId
     };
     
     const existing = JSON.parse(localStorage.getItem('feedback') || '[]');
     existing.push(feedbackData);
     localStorage.setItem('feedback', JSON.stringify(existing));
+
+    // Mark link as used if refId exists
+    if (refId) {
+      const links = JSON.parse(localStorage.getItem('feedbackLinks') || '[]');
+      const updatedLinks = links.map((link: any) => 
+        link.id === refId ? { ...link, used: true } : link
+      );
+      localStorage.setItem('feedbackLinks', JSON.stringify(updatedLinks));
+    }
     
     setIsSubmitting(false);
     setIsSubmitted(true);
@@ -54,11 +74,16 @@ const CustomerFeedback = () => {
             <div className="mb-6">
               <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
               <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                Vielen Dank!
+                Vielen Dank{customerName ? `, ${customerName}` : ''}!
               </h2>
               <p className="text-gray-600">
                 Ihr Feedback wurde erfolgreich übermittelt. Wir schätzen Ihre Bewertung sehr.
               </p>
+              {concern && (
+                <p className="text-sm text-gray-500 mt-2">
+                  Bezüglich: {concern}
+                </p>
+              )}
             </div>
             <div className="flex justify-center mb-4">
               <StarRating rating={rating} onRatingChange={() => {}} readonly size={24} />
@@ -79,11 +104,16 @@ const CustomerFeedback = () => {
       <Card className="w-full max-w-md mx-auto shadow-xl border-0">
         <CardHeader className="text-center pb-4">
           <CardTitle className="text-2xl font-bold text-gray-900">
-            Wie war Ihre Erfahrung?
+            {customerName ? `Hallo ${customerName}` : 'Hallo'}
           </CardTitle>
           <p className="text-gray-600 mt-2">
-            Ihre Bewertung hilft uns, uns zu verbessern
+            {concernText}
           </p>
+          {customerNumber && (
+            <p className="text-xs text-gray-500 mt-1">
+              Kundennummer: {customerNumber}
+            </p>
+          )}
         </CardHeader>
         
         <CardContent className="p-6">
