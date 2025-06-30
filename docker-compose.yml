@@ -10,18 +10,30 @@ services:
     restart: unless-stopped
     container_name: feedback-system
     
-  # Optional: Add a database service if needed in the future
-  # postgres:
-  #   image: postgres:15-alpine
-  #   environment:
-  #     POSTGRES_DB: feedback_db
-  #     POSTGRES_USER: feedback_user
-  #     POSTGRES_PASSWORD: your_secure_password
-  #   ports:
-  #     - "5432:5432"
-  #   volumes:
-  #     - postgres_data:/var/lib/postgresql/data
-  #   restart: unless-stopped
+  backend:
+    build: ./backend
+    ports:
+      - "4000:4000"
+    environment:
+      - DATABASE_URL=postgres://feedback_user:feedback_pass@db:5432/feedback_db
+      - PORT=4000
+    depends_on:
+      - db
+
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: feedback_user
+      POSTGRES_PASSWORD: feedback_pass
+      POSTGRES_DB: feedback_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
 
 # volumes:
 #   postgres_data:
+
+volumes:
+  pgdata:

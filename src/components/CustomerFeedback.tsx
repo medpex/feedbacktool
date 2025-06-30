@@ -1,10 +1,10 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { CheckCircle, MessageSquare, Star as StarIcon } from 'lucide-react';
 import StarRating from './StarRating';
+import { submitFeedback } from '@/lib/api';
 
 const CustomerFeedback = () => {
   const [step, setStep] = useState(1);
@@ -29,37 +29,20 @@ const CustomerFeedback = () => {
 
   const handleFeedbackSubmit = async () => {
     setIsSubmitting(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Store feedback in localStorage for demo purposes
-    const feedbackData = {
-      id: Date.now(),
-      rating,
-      comment: feedback,
-      timestamp: new Date().toISOString(),
-      customer: customerNumber || 'Anonymous',
-      customerName,
-      concern,
-      refId
-    };
-    
-    const existing = JSON.parse(localStorage.getItem('feedback') || '[]');
-    existing.push(feedbackData);
-    localStorage.setItem('feedback', JSON.stringify(existing));
-
-    // Mark link as used if refId exists
-    if (refId) {
-      const links = JSON.parse(localStorage.getItem('feedbackLinks') || '[]');
-      const updatedLinks = links.map((link: any) => 
-        link.id === refId ? { ...link, used: true } : link
-      );
-      localStorage.setItem('feedbackLinks', JSON.stringify(updatedLinks));
+    try {
+      await submitFeedback({
+        rating,
+        comment: feedback,
+        customer: customerNumber || 'Anonymous',
+        customerName,
+        concern,
+        refId
+      });
+      setIsSubmitted(true);
+    } catch (e) {
+      // Fehlerbehandlung (optional Toast)
     }
-    
     setIsSubmitting(false);
-    setIsSubmitted(true);
   };
 
   const handleSkipFeedback = () => {

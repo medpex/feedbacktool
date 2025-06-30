@@ -20,6 +20,7 @@ import {
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import StarRating from './StarRating';
 import LinkGenerator from './LinkGenerator';
+import { fetchFeedback } from '@/lib/api';
 
 interface FeedbackItem {
   id: number;
@@ -36,52 +37,9 @@ const AdminDashboard = () => {
   const [dateFilter, setDateFilter] = useState('all');
 
   useEffect(() => {
-    // Load feedback from localStorage
-    const stored = localStorage.getItem('feedback');
-    if (stored) {
-      setFeedback(JSON.parse(stored));
-    } else {
-      // Add some demo data
-      const demoData = [
-        {
-          id: 1,
-          rating: 5,
-          comment: 'Hervorragender Service! Sehr zufrieden.',
-          timestamp: new Date(Date.now() - 86400000).toISOString(),
-          customer: 'Kunde A'
-        },
-        {
-          id: 2,
-          rating: 4,
-          comment: 'Gut, aber es gibt Raum für Verbesserungen.',
-          timestamp: new Date(Date.now() - 172800000).toISOString(),
-          customer: 'Kunde B'
-        },
-        {
-          id: 3,
-          rating: 2,
-          comment: 'Leider nicht zufriedenstellend. Wartezeit war zu lang.',
-          timestamp: new Date(Date.now() - 259200000).toISOString(),
-          customer: 'Kunde C'
-        },
-        {
-          id: 4,
-          rating: 5,
-          comment: 'Perfekt! Genau das, was ich gebraucht habe.',
-          timestamp: new Date(Date.now() - 345600000).toISOString(),
-          customer: 'Kunde D'
-        },
-        {
-          id: 5,
-          rating: 3,
-          comment: 'Durchschnittlich. Nichts Besonderes.',
-          timestamp: new Date(Date.now() - 432000000).toISOString(),
-          customer: 'Kunde E'
-        }
-      ];
-      setFeedback(demoData);
-      localStorage.setItem('feedback', JSON.stringify(demoData));
-    }
+    fetchFeedback()
+      .then(setFeedback)
+      .catch(() => setFeedback([]));
   }, []);
 
   const filteredFeedback = useMemo(() => {

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { QrCode, Link, Copy, Download, Plus, Code } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { createLink, fetchLinks } from '@/lib/api';
 
 interface FeedbackLink {
   id: string;
@@ -32,10 +32,9 @@ const LinkGenerator = () => {
 
   // Load existing links from localStorage
   React.useEffect(() => {
-    const stored = localStorage.getItem('feedbackLinks');
-    if (stored) {
-      setGeneratedLinks(JSON.parse(stored));
-    }
+    fetchLinks()
+      .then(setGeneratedLinks)
+      .catch(() => setGeneratedLinks([]));
   }, []);
 
   const generateQRCode = (url: string): string => {
@@ -72,44 +71,28 @@ const LinkGenerator = () => {
     setIsGenerating(true);
 
     try {
-      // Generate unique ID
-      const id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
-      
-      // Create feedback URL with parameters including concern text
       const baseUrl = window.location.origin;
       const concernText = getConcernText(concern);
-      const feedbackUrl = `${baseUrl}/?ref=${id}&customer=${encodeURIComponent(customerNumber)}&name=${encodeURIComponent(`${firstName} ${lastName}`)}&concern=${encodeURIComponent(concern)}&text=${encodeURIComponent(concernText)}`;
-      
-      // Generate QR code URL
+      const feedbackUrl = `${baseUrl}/?customer=${encodeURIComponent(customerNumber)}&name=${encodeURIComponent(`${firstName} ${lastName}`)}&concern=${encodeURIComponent(concern)}&text=${encodeURIComponent(concernText)}`;
       const qrCodeUrl = generateQRCode(feedbackUrl);
-
-      const newLink: FeedbackLink = {
-        id,
+      const newLink = await createLink({
         customerNumber,
         concern,
         firstName,
         lastName,
         feedbackUrl,
-        qrCodeUrl,
-        createdAt: new Date().toISOString(),
-        used: false
-      };
-
-      const updatedLinks = [...generatedLinks, newLink];
-      setGeneratedLinks(updatedLinks);
-      localStorage.setItem('feedbackLinks', JSON.stringify(updatedLinks));
-
-      // Reset form
+        qrCodeUrl
+      });
+      const links = await fetchLinks();
+      setGeneratedLinks(links);
       setCustomerNumber('');
       setConcern('');
       setFirstName('');
       setLastName('');
-
       toast({
         title: "Link generiert",
         description: "Feedback-Link und QR-Code wurden erfolgreich erstellt.",
       });
-
     } catch (error) {
       toast({
         title: "Fehler",

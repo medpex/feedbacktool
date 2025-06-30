@@ -19,6 +19,8 @@ RUN npm run build
 # Production-Deps reduzieren (optional, reduziert node_modules)
 RUN npm prune --production
 
+# Hinweis: Das Backend läuft jetzt in einem eigenen Container (siehe docker-compose.yml)
+
 # ─── Production Stage mit Nginx ───────────────────────────────────────────────
 FROM nginx:alpine AS runner
 

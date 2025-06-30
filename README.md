@@ -1,4 +1,3 @@
-
 # Feedback System
 
 Ein schlankes, nutzerfreundliches Feedback-System mit Kunden-Landingpage und Admin-Dashboard.
@@ -133,6 +132,17 @@ GET /api/feedback
 }
 ```
 
+## 🖥️ Backend-API & Datenbank (ab Version X)
+
+- Das neue Backend liegt im Ordner /backend (mit eigenem README und tsconfig.json)
+- Die Daten werden in einer PostgreSQL-Datenbank gespeichert
+- API-Endpunkte:
+  - POST /api/feedback-links: Erzeugt einen neuen Feedback-Link
+  - GET /api/feedback-links/:id: Holt Details zu einem Link
+  - POST /api/feedback: Speichert Kundenfeedback
+  - GET /api/feedback: Holt alle Feedbacks (Admin)
+- Die Frontend-App muss die API-URL auf das Backend zeigen (z.B. VITE_API_URL=http://localhost:4000/api)
+
 ## 🛠️ Wartung
 
 ### Container-Logs anzeigen
@@ -181,3 +191,5 @@ Bei Problemen:
 ## 📝 Lizenz
 
 [Ihre Lizenz hier einfügen]
+
+- Das Frontend bleibt wie gehabt im src-Ordner und funktioniert unabhängig vom Backend
