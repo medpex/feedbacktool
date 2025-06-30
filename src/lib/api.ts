@@ -1,3 +1,4 @@
+
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 export async function fetchFeedback() {
@@ -38,4 +39,15 @@ export async function fetchLinkById(id: string) {
   const res = await fetch(`${API_URL}/feedback-links/${id}`);
   if (!res.ok) throw new Error('Link nicht gefunden');
   return (await res.json()).data;
-} 
+}
+
+export async function deleteLink(id: string) {
+  const res = await fetch(`${API_URL}/feedback-links/${id}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({ error: 'Unbekannter Fehler' }));
+    throw new Error(errorData.error || 'Fehler beim Löschen des Links');
+  }
+  return await res.json();
+}
