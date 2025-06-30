@@ -5,6 +5,20 @@ import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
 
+// Hilfsfunktion für Concern-Texte
+function getConcernText(concern: string): string {
+  const concernTexts: Record<string, string> = {
+    'Internet-Freischaltung': 'Kürzlich wurde Ihr Internet freigeschaltet. Wie war Ihre Erfahrung mit unserem Service?',
+    'Störung': 'Wir haben Ihre gemeldete Störung bearbeitet. Wie zufrieden sind Sie mit der Lösung?',
+    'Servicebesuch': 'Unser Techniker war bei Ihnen vor Ort. Wie bewerten Sie den Servicebesuch?',
+    'Beratung': 'Sie haben eine Beratung bei uns erhalten. Wie hilfreich war unser Beratungsgespräch?',
+    'Rechnung': 'Bezüglich Ihrer Rechnungsanfrage: Wie zufrieden sind Sie mit der Bearbeitung?',
+    'Kündigung': 'Ihre Kündigung wurde bearbeitet. Wie bewerten Sie unseren Kündigungsprozess?',
+    'Sonstiges': 'Wie war Ihre Erfahrung mit unserem Service?'
+  };
+  return concernTexts[concern] || 'Wie war Ihre Erfahrung mit unserem Service?';
+}
+
 // POST /api/feedback-links
 router.post('/feedback-links', async (req: Request, res: Response) => {
   const { customerNumber, concern, firstName, lastName } = req.body;
@@ -13,17 +27,29 @@ router.post('/feedback-links', async (req: Request, res: Response) => {
   }
   const id = uuidv4();
   const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-  const feedbackUrl = `${baseUrl}/?ref=${id}`;
+  
+  // Parameter für den Feedback-Link zusammenstellen
+  const params = new URLSearchParams({
+    ref: id,
+    customer: customerNumber,
+    name: `${firstName} ${lastName}`,
+    concern: concern,
+    text: getConcernText(concern)
+  });
+  
+  const feedbackUrl = `${baseUrl}/?${params.toString()}`;
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(feedbackUrl)}`;
   const createdAt = new Date().toISOString();
+  
   try {
     await pool.query(
       `INSERT INTO feedback_links (id, customer_number, concern, first_name, last_name, feedback_url, qr_code_url, created_at, used)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
       [id, customerNumber, concern, firstName, lastName, feedbackUrl, qrCodeUrl, createdAt, false]
     );
-    res.json({ success: true, data: { id, feedbackUrl, qrCodeUrl, concernText: concern, createdAt } });
+    res.json({ success: true, data: { id, feedbackUrl, qrCodeUrl, concernText: getConcernText(concern), createdAt } });
   } catch (err) {
+    console.error('DB error (create feedback-link):', err);
     res.status(500).json({ success: false, error: 'DB error' });
   }
 });
