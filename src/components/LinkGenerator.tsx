@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { QrCode, Link, Copy, Download, Plus, Code } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { createLink, fetchLinks } from '@/lib/api';
+import { createLink, fetchLinks, fetchLinkById } from '@/lib/api';
 
 interface FeedbackLink {
   id: string;
@@ -72,19 +72,23 @@ const LinkGenerator = () => {
 
     try {
       const baseUrl = window.location.origin;
-      const concernText = getConcernText(concern);
-      const feedbackUrl = `${baseUrl}/?customer=${encodeURIComponent(customerNumber)}&name=${encodeURIComponent(`${firstName} ${lastName}`)}&concern=${encodeURIComponent(concern)}&text=${encodeURIComponent(concernText)}`;
-      const qrCodeUrl = generateQRCode(feedbackUrl);
+      // Backend erzeugt jetzt die ID und gibt sie zurück
       const newLink = await createLink({
         customerNumber,
         concern,
         firstName,
-        lastName,
-        feedbackUrl,
-        qrCodeUrl
+        lastName
       });
+      // Feedback-Link und QR-Code-URL lokal generieren
+      const feedbackUrl = `${baseUrl}/?ref=${newLink.id}`;
+      const qrCodeUrl = generateQRCode(feedbackUrl);
+      // Links-Liste aktualisieren (mit lokal generierten URLs)
       const links = await fetchLinks();
-      setGeneratedLinks(links);
+      setGeneratedLinks(links.map(link => ({
+        ...link,
+        feedbackUrl: `${baseUrl}/?ref=${link.id}`,
+        qrCodeUrl: generateQRCode(`${baseUrl}/?ref=${link.id}`)
+      })));
       setCustomerNumber('');
       setConcern('');
       setFirstName('');
@@ -105,11 +109,40 @@ const LinkGenerator = () => {
   };
 
   const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    toast({
-      title: "Kopiert",
-      description: "Link wurde in die Zwischenablage kopiert.",
-    });
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(() => {
+        toast({
+          title: "Kopiert",
+          description: "Link wurde in die Zwischenablage kopiert.",
+        });
+      }).catch(() => {
+        toast({
+          title: "Fehler",
+          description: "Kopieren in die Zwischenablage nicht möglich.",
+          variant: "destructive",
+        });
+      });
+    } else {
+      // Fallback für unsichere Kontexte
+      try {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        toast({
+          title: "Kopiert",
+          description: "Link wurde in die Zwischenablage kopiert.",
+        });
+      } catch {
+        toast({
+          title: "Fehler",
+          description: "Kopieren in die Zwischenablage nicht möglich.",
+          variant: "destructive",
+        });
+      }
+    }
   };
 
   const downloadQRCode = (url: string, filename: string) => {
@@ -128,6 +161,20 @@ const LinkGenerator = () => {
     'Kündigung',
     'Sonstiges'
   ];
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Diesen Link wirklich löschen?')) return;
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/feedback-links/${id}`, {
+        method: 'DELETE'
+      });
+      if (!res.ok) throw new Error('Fehler beim Löschen');
+      setGeneratedLinks(generatedLinks.filter(link => link.id !== id));
+      toast({ title: 'Gelöscht', description: 'Link wurde gelöscht.' });
+    } catch {
+      toast({ title: 'Fehler', description: 'Link konnte nicht gelöscht werden.', variant: 'destructive' });
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -366,6 +413,13 @@ const LinkGenerator = () => {
                       </div>
                     </div>
                   </div>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => handleDelete(link.id)}
+                  >
+                    Löschen
+                  </Button>
                 </div>
               ))}
             </div>
