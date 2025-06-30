@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -34,15 +33,21 @@ const LinkGenerator = () => {
 
   // Load existing links from API
   React.useEffect(() => {
-    console.log('Loading feedback links...');
+    console.log('LinkGenerator: Component mounted, loading feedback links...');
+    console.log('LinkGenerator: Current API_URL from env:', import.meta.env.VITE_API_URL);
     fetchLinks()
       .then(links => {
-        console.log('Loaded links:', links);
+        console.log('LinkGenerator: Successfully loaded links:', links);
         setGeneratedLinks(links);
       })
       .catch(error => {
-        console.error('Error loading links:', error);
+        console.error('LinkGenerator: Error loading links:', error);
         setGeneratedLinks([]);
+        toast({
+          title: "Fehler beim Laden",
+          description: `Konnte Links nicht laden: ${error.message}`,
+          variant: "destructive",
+        });
       });
   }, []);
 
@@ -66,7 +71,10 @@ const LinkGenerator = () => {
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('LinkGenerator: handleGenerate called with:', { customerNumber, concern, firstName, lastName });
+    
     if (!customerNumber || !concern || !firstName || !lastName) {
+      console.log('LinkGenerator: Validation failed - missing fields');
       toast({
         title: "Fehler",
         description: "Bitte füllen Sie alle Felder aus.",
@@ -78,7 +86,7 @@ const LinkGenerator = () => {
     setIsGenerating(true);
 
     try {
-      console.log('Creating link with data:', { customerNumber, concern, firstName, lastName });
+      console.log('LinkGenerator: Creating link with data:', { customerNumber, concern, firstName, lastName });
       
       const newLink = await createLink({
         customerNumber,
@@ -87,10 +95,12 @@ const LinkGenerator = () => {
         lastName
       });
       
-      console.log('Created link:', newLink);
+      console.log('LinkGenerator: Successfully created link:', newLink);
       
       // Reload all links to get the updated list
+      console.log('LinkGenerator: Reloading all links...');
       const links = await fetchLinks();
+      console.log('LinkGenerator: Reloaded links:', links);
       setGeneratedLinks(links);
       
       // Clear form
@@ -104,10 +114,10 @@ const LinkGenerator = () => {
         description: "Feedback-Link und QR-Code wurden erfolgreich erstellt.",
       });
     } catch (error) {
-      console.error('Error creating link:', error);
+      console.error('LinkGenerator: Error creating link:', error);
       toast({
         title: "Fehler",
-        description: "Beim Generieren des Links ist ein Fehler aufgetreten.",
+        description: `Beim Generieren des Links ist ein Fehler aufgetreten: ${error instanceof Error ? error.message : 'Unbekannter Fehler'}`,
         variant: "destructive",
       });
     } finally {
@@ -116,16 +126,23 @@ const LinkGenerator = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (deletingId) return; // Prevent multiple simultaneous deletions
+    if (deletingId) {
+      console.log('LinkGenerator: Delete already in progress, ignoring request');
+      return; // Prevent multiple simultaneous deletions
+    }
     
+    console.log('LinkGenerator: handleDelete called with id:', id);
     setDeletingId(id);
     
     try {
-      console.log('Deleting link with id:', id);
+      console.log('LinkGenerator: Deleting link with id:', id);
       await deleteLink(id);
+      console.log('LinkGenerator: Successfully deleted link:', id);
       
       // Reload links after successful deletion
+      console.log('LinkGenerator: Reloading links after deletion...');
       const links = await fetchLinks();
+      console.log('LinkGenerator: Reloaded links after deletion:', links);
       setGeneratedLinks(links);
       
       toast({
@@ -133,7 +150,7 @@ const LinkGenerator = () => {
         description: "Der Feedback-Link wurde erfolgreich gelöscht.",
       });
     } catch (error) {
-      console.error('Error deleting link:', error);
+      console.error('LinkGenerator: Error deleting link:', error);
       toast({
         title: "Fehler beim Löschen",
         description: error instanceof Error ? error.message : "Beim Löschen des Links ist ein Fehler aufgetreten.",
@@ -171,6 +188,17 @@ const LinkGenerator = () => {
 
   return (
     <div className="space-y-6">
+      {/* Debug Info */}
+      <Card className="bg-yellow-50 border-yellow-200">
+        <CardContent className="pt-4">
+          <p className="text-sm text-yellow-800">
+            <strong>Debug Info:</strong> API URL = {import.meta.env.VITE_API_URL || '/api'} | 
+            Links geladen: {generatedLinks.length} | 
+            Browser URL: {window.location.origin}
+          </p>
+        </CardContent>
+      </Card>
+
       {/* API Documentation */}
       <Card>
         <CardHeader>
