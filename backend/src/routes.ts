@@ -79,7 +79,7 @@ router.post('/feedback-links', async (req: Request, res: Response) => {
 function mapLinkRow(row: any): FeedbackLink {
   return {
     id: row.id,
-    customerNumber: row.customer_number,
+    customer_number: row.customer_number,
     concern: row.concern,
     firstName: row.first_name,
     lastName: row.last_name,
