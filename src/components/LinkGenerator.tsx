@@ -18,7 +18,9 @@ import {
   CheckCircle,
   AlertCircle,
   ExternalLink,
-  RefreshCw
+  RefreshCw,
+  Code,
+  FileText
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { createLink, fetchLinks, deleteLink, fetchSettings } from '@/lib/api';
@@ -331,35 +333,229 @@ const LinkGenerator = () => {
         </CardContent>
       </Card>
 
-      {/* API Documentation */}
+      {/* Comprehensive API Documentation */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <ExternalLink className="w-5 h-5" />
-            API-Dokumentation
+            <Code className="w-5 h-5" />
+            API-Dokumentation für externe Systeme
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div>
-              <h4 className="font-medium mb-2">POST /api/feedback-links</h4>
-              <p className="text-sm text-gray-600 mb-2">Erstellt einen neuen Feedback-Link</p>
-              <Textarea
-                readOnly
-                value={`{
-  "customerNumber": "123456",
-  "concern": "Internet-Freischaltung", 
+          <div className="space-y-6">
+            {/* Base URL Info */}
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <h4 className="font-medium mb-2 text-blue-900">Base URL</h4>
+              <code className="text-sm bg-white px-3 py-2 rounded border block">
+                {window.location.origin}/api
+              </code>
+            </div>
+
+            {/* Create Feedback Link Endpoint */}
+            <div className="border rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Badge className="bg-green-100 text-green-800">POST</Badge>
+                <code className="font-medium">/feedback-links</code>
+              </div>
+              <p className="text-sm text-gray-600 mb-4">
+                Erstellt einen neuen Feedback-Link mit QR-Code. Ideal für die Integration in Workflow-Systeme.
+              </p>
+              
+              <div className="space-y-4">
+                <div>
+                  <h5 className="font-medium mb-2">Request Body:</h5>
+                  <Textarea
+                    readOnly
+                    value={`{
+  "customerNumber": "KD-123456",
+  "concern": "Internet-Freischaltung",
   "firstName": "Max",
   "lastName": "Mustermann"
 }`}
-                className="font-mono text-sm"
-                rows={7}
-              />
+                    className="font-mono text-sm"
+                    rows={7}
+                  />
+                </div>
+
+                <div>
+                  <h5 className="font-medium mb-2">Response (Success 200):</h5>
+                  <Textarea
+                    readOnly
+                    value={`{
+  "success": true,
+  "data": {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "feedbackUrl": "${window.location.origin}/?ref=a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "qrCodeUrl": "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=...",
+    "concernText": "Kürzlich wurde Ihr Internet freigeschaltet. Wie war Ihre Erfahrung?",
+    "createdAt": "2024-01-15T10:30:00.000Z"
+  }
+}`}
+                    className="font-mono text-sm"
+                    rows={10}
+                  />
+                </div>
+
+                <div>
+                  <h5 className="font-medium mb-2">Verfügbare Anliegen (concern):</h5>
+                  <div className="flex flex-wrap gap-2">
+                    {concernTypes.map((concern) => (
+                      <Badge key={concern} variant="secondary" className="text-xs">
+                        {concern}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
-            
-            <div>
-              <h4 className="font-medium mb-2">GET /api/feedback-links</h4>
-              <p className="text-sm text-gray-600">Ruft alle generierten Links ab</p>
+
+            {/* Get All Links Endpoint */}
+            <div className="border rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Badge className="bg-blue-100 text-blue-800">GET</Badge>
+                <code className="font-medium">/feedback-links</code>
+              </div>
+              <p className="text-sm text-gray-600 mb-4">
+                Ruft alle generierten Feedback-Links ab. Nützlich für Monitoring und Verwaltung.
+              </p>
+              
+              <div>
+                <h5 className="font-medium mb-2">Response (Success 200):</h5>
+                <Textarea
+                  readOnly
+                  value={`{
+  "success": true,
+  "data": [
+    {
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "customer_number": "KD-123456",
+      "concern": "Internet-Freischaltung",
+      "first_name": "Max",
+      "last_name": "Mustermann",
+      "feedback_url": "${window.location.origin}/?ref=a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "qr_code_url": "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=...",
+      "created_at": "2024-01-15T10:30:00.000Z",
+      "used": false
+    }
+  ]
+}`}
+                  className="font-mono text-sm"
+                  rows={15}
+                />
+              </div>
+            </div>
+
+            {/* Get Single Link Endpoint */}
+            <div className="border rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Badge className="bg-blue-100 text-blue-800">GET</Badge>
+                <code className="font-medium">/feedback-links/:id</code>
+              </div>
+              <p className="text-sm text-gray-600 mb-4">
+                Ruft Details zu einem spezifischen Feedback-Link ab.
+              </p>
+              
+              <div>
+                <h5 className="font-medium mb-2">Response (Success 200):</h5>
+                <Textarea
+                  readOnly
+                  value={`{
+  "success": true,
+  "data": {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "customer_number": "KD-123456",
+    "concern": "Internet-Freischaltung",
+    "first_name": "Max",
+    "last_name": "Mustermann",
+    "feedback_url": "${window.location.origin}/?ref=a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "qr_code_url": "https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=...",
+    "created_at": "2024-01-15T10:30:00.000Z",
+    "used": false
+  }
+}`}
+                  className="font-mono text-sm"
+                  rows={13}
+                />
+              </div>
+            </div>
+
+            {/* Error Responses */}
+            <div className="border rounded-lg p-4 bg-red-50">
+              <h4 className="font-medium mb-3 text-red-900">Fehler-Responses</h4>
+              <div className="space-y-3">
+                <div>
+                  <h5 className="font-medium mb-1">400 Bad Request:</h5>
+                  <code className="text-sm bg-white px-2 py-1 rounded block">
+                    {"{ \"success\": false, \"error\": \"Missing required fields\" }"}
+                  </code>
+                </div>
+                <div>
+                  <h5 className="font-medium mb-1">404 Not Found:</h5>
+                  <code className="text-sm bg-white px-2 py-1 rounded block">
+                    {"{ \"success\": false, \"error\": \"Feedback link not found\" }"}
+                  </code>
+                </div>
+                <div>
+                  <h5 className="font-medium mb-1">500 Internal Server Error:</h5>
+                  <code className="text-sm bg-white px-2 py-1 rounded block">
+                    {"{ \"success\": false, \"error\": \"Database error\" }"}
+                  </code>
+                </div>
+              </div>
+            </div>
+
+            {/* Integration Examples */}
+            <div className="border rounded-lg p-4 bg-green-50">
+              <h4 className="font-medium mb-3 text-green-900">Integration Beispiele</h4>
+              
+              <div className="space-y-4">
+                <div>
+                  <h5 className="font-medium mb-2">cURL Beispiel:</h5>
+                  <Textarea
+                    readOnly
+                    value={`curl -X POST ${window.location.origin}/api/feedback-links \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "customerNumber": "KD-123456",
+    "concern": "Internet-Freischaltung",
+    "firstName": "Max",
+    "lastName": "Mustermann"
+  }'`}
+                    className="font-mono text-sm"
+                    rows={8}
+                  />
+                </div>
+
+                <div>
+                  <h5 className="font-medium mb-2">Python Beispiel:</h5>
+                  <Textarea
+                    readOnly
+                    value={`import requests
+import json
+
+url = "${window.location.origin}/api/feedback-links"
+data = {
+    "customerNumber": "KD-123456",
+    "concern": "Internet-Freischaltung",
+    "firstName": "Max",
+    "lastName": "Mustermann"
+}
+
+response = requests.post(url, json=data)
+result = response.json()
+
+if result["success"]:
+    feedback_url = result["data"]["feedbackUrl"]
+    qr_code_url = result["data"]["qrCodeUrl"]
+    print(f"Feedback-Link: {feedback_url}")
+    print(f"QR-Code: {qr_code_url}")
+else:
+    print(f"Fehler: {result['error']}")`}
+                    className="font-mono text-sm"
+                    rows={18}
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </CardContent>
