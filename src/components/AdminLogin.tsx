@@ -22,14 +22,22 @@ const AdminLogin = ({ onLogin }: AdminLoginProps) => {
     setIsLoading(true);
     setError('');
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      // Authenticate against database
+      const response = await fetch('/api/admin-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
 
-    // Simple demo authentication
-    if (username === 'admin' && password === 'password') {
-      onLogin();
-    } else {
-      setError('Benutzername oder Passwort ist falsch');
+      if (response.ok) {
+        onLogin();
+      } else {
+        setError('Benutzername oder Passwort ist falsch');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      setError('Anmeldung fehlgeschlagen');
     }
     
     setIsLoading(false);
@@ -105,14 +113,6 @@ const AdminLogin = ({ onLogin }: AdminLoginProps) => {
               {isLoading ? 'Anmeldung läuft...' : 'Anmelden'}
             </Button>
           </form>
-
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-            <p className="text-sm text-gray-600 text-center font-medium">Demo-Zugangsdaten:</p>
-            <p className="text-sm text-gray-500 text-center mt-1">
-              Benutzername: <span className="font-mono bg-white px-1 rounded">admin</span><br />
-              Passwort: <span className="font-mono bg-white px-1 rounded">password</span>
-            </p>
-          </div>
         </CardContent>
       </Card>
     </div>

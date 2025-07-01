@@ -43,6 +43,28 @@ async function getBaseUrl(): Promise<string> {
   return 'https://feedback.home-ki.eu'; // Fallback
 }
 
+// POST /api/admin-login - New login endpoint
+router.post('/admin-login', async (req: Request, res: Response) => {
+  const { username, password } = req.body;
+  
+  if (!username || !password) {
+    return res.status(400).json({ success: false, error: 'Username and password required' });
+  }
+  
+  try {
+    const result = await pool.query('SELECT * FROM admin_credentials WHERE username = $1 AND password = $2', [username, password]);
+    
+    if (result.rows.length > 0) {
+      res.json({ success: true });
+    } else {
+      res.status(401).json({ success: false, error: 'Invalid credentials' });
+    }
+  } catch (err) {
+    console.error('DB error (admin login):', err);
+    res.status(500).json({ success: false, error: 'Database error' });
+  }
+});
+
 // POST /api/feedback-links
 router.post('/feedback-links', async (req: Request, res: Response) => {
   const { customerNumber, concern, firstName, lastName } = req.body;
@@ -193,8 +215,6 @@ router.delete('/feedback-links/:id', async (req: Request, res: Response) => {
   }
 });
 
-// Settings routes
-
 // GET /api/settings
 router.get('/settings', async (req: Request, res: Response) => {
   try {
@@ -267,7 +287,7 @@ router.post('/settings', async (req: Request, res: Response) => {
   }
 });
 
-// POST /api/admin-credentials
+// POST /api/admin-credentials - Updated to work with database
 router.post('/admin-credentials', async (req: Request, res: Response) => {
   const { username, password } = req.body;
   
@@ -278,7 +298,16 @@ router.post('/admin-credentials', async (req: Request, res: Response) => {
   }
   
   try {
-    // In einer echten Anwendung würde das Passwort gehashed werden
+    // Check if admin_credentials table exists, if not create it
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS admin_credentials (
+        username VARCHAR(255) PRIMARY KEY,
+        password VARCHAR(255) NOT NULL,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+    
+    // Insert or update credentials
     await pool.query(
       `INSERT INTO admin_credentials (username, password, updated_at) 
        VALUES ($1, $2, $3)

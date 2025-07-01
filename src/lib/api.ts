@@ -1,3 +1,4 @@
+
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 export async function fetchFeedback() {
@@ -101,5 +102,16 @@ export async function saveAdminCredentials(credentials: any) {
     body: JSON.stringify(credentials),
   });
   if (!res.ok) throw new Error('Fehler beim Speichern der Zugangsdaten');
+  return await res.json();
+}
+
+// New admin login function
+export async function adminLogin(credentials: any) {
+  const res = await fetch(`${API_URL}/admin-login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(credentials),
+  });
+  if (!res.ok) throw new Error('Anmeldung fehlgeschlagen');
   return await res.json();
 }
