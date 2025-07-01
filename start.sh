@@ -3,6 +3,20 @@
 
 echo "🚀 Starting Feedback System..."
 
+# Get server IP automatically
+SERVER_IP=$(hostname -I | awk '{print $1}')
+if [ -z "$SERVER_IP" ]; then
+    SERVER_IP="localhost"
+fi
+
+# Set FRONTEND_URL if not already set
+if [ -z "$FRONTEND_URL" ]; then
+    export FRONTEND_URL="http://${SERVER_IP}:3000"
+fi
+
+echo "📍 Server IP detected: $SERVER_IP"
+echo "🌐 Frontend URL: $FRONTEND_URL"
+
 # Stop and remove existing containers
 echo "📦 Stopping existing containers..."
 docker-compose down -v
@@ -24,9 +38,9 @@ echo "📊 Checking service status..."
 docker-compose ps
 
 echo "✅ Setup complete!"
-echo "Frontend: http://localhost:3000"
-echo "Backend API: http://localhost:4000/api"
-echo "Admin: http://localhost:3000/admin (admin/admin123)"
+echo "Frontend: $FRONTEND_URL"
+echo "Backend API: http://${SERVER_IP}:4000/api"
+echo "Admin: $FRONTEND_URL/admin (admin/admin123)"
 echo ""
 echo "To view logs: docker-compose logs -f"
 echo "To stop: docker-compose down"

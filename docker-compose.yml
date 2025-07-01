@@ -6,6 +6,7 @@ services:
       - "3000:80"
     environment:
       - NODE_ENV=production
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
     restart: unless-stopped
     container_name: feedback-frontend
     depends_on:
@@ -18,6 +19,7 @@ services:
     environment:
       - DATABASE_URL=postgres://feedback_user:feedback_pass@db:5432/feedback_db
       - PORT=4000
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
     depends_on:
       db:
         condition: service_healthy

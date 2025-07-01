@@ -29,7 +29,15 @@ router.post('/feedback-links', async (req: Request, res: Response) => {
   }
   
   const id = uuidv4();
-  const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+  
+  // Dynamische Base URL basierend auf Request-Header oder Environment
+  let baseUrl = process.env.FRONTEND_URL;
+  if (!baseUrl) {
+    // Fallback: URL aus Request-Header ableiten
+    const protocol = req.get('X-Forwarded-Proto') || (req.secure ? 'https' : 'http');
+    const host = req.get('X-Forwarded-Host') || req.get('Host') || 'localhost:3000';
+    baseUrl = `${protocol}://${host}`;
+  }
   
   // Parameter für den Feedback-Link zusammenstellen
   const params = new URLSearchParams({
