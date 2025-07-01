@@ -6,7 +6,6 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { 
   Settings, 
@@ -20,6 +19,7 @@ import {
   Shield
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { fetchSettings, saveSettings, saveAdminCredentials } from '@/lib/api';
 
 interface AdminCredentials {
   username: string;
@@ -48,40 +48,67 @@ const AdminSettings = () => {
     username: 'admin',
     password: ''
   });
-  const [domains, setDomains] = useState<DomainSetting[]>([
-    { id: '1', domain: 'https://feedback.home-ki.eu', isActive: true }
-  ]);
-  const [concernTexts, setConcernTexts] = useState<ConcernText[]>([
-    { concern: 'Internet-Freischaltung', text: 'Kürzlich wurde Ihr Internet freigeschaltet. Wie war Ihre Erfahrung mit unserem Service?' },
-    { concern: 'Störung', text: 'Wir haben Ihre gemeldete Störung bearbeitet. Wie zufrieden sind Sie mit der Lösung?' },
-    { concern: 'Servicebesuch', text: 'Unser Techniker war bei Ihnen vor Ort. Wie bewerten Sie den Servicebesuch?' },
-    { concern: 'Beratung', text: 'Sie haben eine Beratung bei uns erhalten. Wie hilfreich war unser Beratungsgespräch?' },
-    { concern: 'Rechnung', text: 'Bezüglich Ihrer Rechnungsanfrage: Wie zufrieden sind Sie mit der Bearbeitung?' },
-    { concern: 'Kündigung', text: 'Ihre Kündigung wurde bearbeitet. Wie bewerten Sie unseren Kündigungsprozess?' },
-    { concern: 'Sonstiges', text: 'Wie war Ihre Erfahrung mit unserem Service?' }
-  ]);
-  const [concernTypes, setConcernTypes] = useState<ConcernType[]>([
-    { id: '1', name: 'Internet-Freischaltung', isActive: true },
-    { id: '2', name: 'Störung', isActive: true },
-    { id: '3', name: 'Servicebesuch', isActive: true },
-    { id: '4', name: 'Beratung', isActive: true },
-    { id: '5', name: 'Rechnung', isActive: true },
-    { id: '6', name: 'Kündigung', isActive: true },
-    { id: '7', name: 'Sonstiges', isActive: true }
+  const [domains, setDomains] = useState<string[]>(['https://feedback.home-ki.eu']);
+  const [concernTexts, setConcernTexts] = useState<Record<string, string>>({
+    'Internet-Freischaltung': 'Kürzlich wurde Ihr Internet freigeschaltet. Wie war Ihre Erfahrung mit unserem Service?',
+    'Störung': 'Wir haben Ihre gemeldete Störung bearbeitet. Wie zufrieden sind Sie mit der Lösung?',
+    'Servicebesuch': 'Unser Techniker war bei Ihnen vor Ort. Wie bewerten Sie den Servicebesuch?',
+    'Beratung': 'Sie haben eine Beratung bei uns erhalten. Wie hilfreich war unser Beratungsgespräch?',
+    'Rechnung': 'Bezüglich Ihrer Rechnungsanfrage: Wie zufrieden sind Sie mit der Bearbeitung?',
+    'Kündigung': 'Ihre Kündigung wurde bearbeitet. Wie bewerten Sie unseren Kündigungsprozess?',
+    'Sonstiges': 'Wie war Ihre Erfahrung mit unserem Service?'
+  });
+  const [concernTypes, setConcernTypes] = useState<string[]>([
+    'Internet-Freischaltung',
+    'Störung', 
+    'Servicebesuch',
+    'Beratung',
+    'Rechnung',
+    'Kündigung',
+    'Sonstiges'
   ]);
   
   const [newDomain, setNewDomain] = useState('');
   const [newConcernType, setNewConcernType] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Einstellungen beim Laden abrufen
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const settings = await fetchSettings();
+        console.log('Loaded settings:', settings);
+        if (settings.domains) {
+          setDomains(settings.domains);
+        }
+        if (settings.concern_texts) {
+          setConcernTexts(settings.concern_texts);
+        }
+        if (settings.concern_types) {
+          setConcernTypes(settings.concern_types);
+        }
+      } catch (error) {
+        console.error('Error loading settings:', error);
+        toast.error('Fehler beim Laden der Einstellungen');
+      }
+    };
+    loadSettings();
+  }, []);
+
   // Zugangsdaten speichern
   const handleSaveCredentials = async () => {
+    if (!credentials.password.trim()) {
+      toast.error('Bitte geben Sie ein Passwort ein');
+      return;
+    }
+
     setLoading(true);
     try {
-      // Hier würde normalerweise ein API-Call stattfinden
-      // await saveAdminCredentials(credentials);
+      await saveAdminCredentials(credentials);
       toast.success('Zugangsdaten erfolgreich aktualisiert');
+      setCredentials({ ...credentials, password: '' });
     } catch (error) {
+      console.error('Error saving credentials:', error);
       toast.error('Fehler beim Speichern der Zugangsdaten');
     } finally {
       setLoading(false);
@@ -92,85 +119,69 @@ const AdminSettings = () => {
   const handleAddDomain = () => {
     if (!newDomain.trim()) return;
     
-    const newDomainObj: DomainSetting = {
-      id: Date.now().toString(),
-      domain: newDomain.trim(),
-      isActive: true
-    };
-    
-    setDomains([...domains, newDomainObj]);
+    const updatedDomains = [...domains, newDomain.trim()];
+    setDomains(updatedDomains);
     setNewDomain('');
     toast.success('Domain hinzugefügt');
   };
 
   // Domain löschen
-  const handleDeleteDomain = (id: string) => {
-    setDomains(domains.filter(d => d.id !== id));
+  const handleDeleteDomain = (domainToDelete: string) => {
+    const updatedDomains = domains.filter(d => d !== domainToDelete);
+    setDomains(updatedDomains);
     toast.success('Domain entfernt');
-  };
-
-  // Domain-Status ändern
-  const handleToggleDomain = (id: string) => {
-    setDomains(domains.map(d => 
-      d.id === id ? { ...d, isActive: !d.isActive } : d
-    ));
   };
 
   // Anliegen-Text aktualisieren
   const handleUpdateConcernText = (concern: string, text: string) => {
-    setConcernTexts(concernTexts.map(ct => 
-      ct.concern === concern ? { ...ct, text } : ct
-    ));
-  };
-
-  // Anliegen-Texte speichern
-  const handleSaveConcernTexts = async () => {
-    setLoading(true);
-    try {
-      // Hier würde normalerweise ein API-Call stattfinden
-      // await saveConcernTexts(concernTexts);
-      toast.success('Anliegen-Texte erfolgreich gespeichert');
-    } catch (error) {
-      toast.error('Fehler beim Speichern der Anliegen-Texte');
-    } finally {
-      setLoading(false);
-    }
+    setConcernTexts({ ...concernTexts, [concern]: text });
   };
 
   // Neues Anliegen hinzufügen
   const handleAddConcernType = () => {
     if (!newConcernType.trim()) return;
     
-    const newConcern: ConcernType = {
-      id: Date.now().toString(),
-      name: newConcernType.trim(),
-      isActive: true
-    };
-    
-    setConcernTypes([...concernTypes, newConcern]);
+    const updatedTypes = [...concernTypes, newConcernType.trim()];
+    setConcernTypes(updatedTypes);
     
     // Auch einen Standard-Text hinzufügen
-    setConcernTexts([...concernTexts, {
-      concern: newConcernType.trim(),
-      text: 'Wie war Ihre Erfahrung mit unserem Service?'
-    }]);
+    setConcernTexts({
+      ...concernTexts,
+      [newConcernType.trim()]: 'Wie war Ihre Erfahrung mit unserem Service?'
+    });
     
     setNewConcernType('');
     toast.success('Anliegen hinzugefügt');
   };
 
   // Anliegen löschen
-  const handleDeleteConcernType = (id: string, name: string) => {
-    setConcernTypes(concernTypes.filter(ct => ct.id !== id));
-    setConcernTexts(concernTexts.filter(ct => ct.concern !== name));
+  const handleDeleteConcernType = (concernToDelete: string) => {
+    const updatedTypes = concernTypes.filter(ct => ct !== concernToDelete);
+    setConcernTypes(updatedTypes);
+    
+    const updatedTexts = { ...concernTexts };
+    delete updatedTexts[concernToDelete];
+    setConcernTexts(updatedTexts);
+    
     toast.success('Anliegen entfernt');
   };
 
-  // Anliegen-Status ändern
-  const handleToggleConcernType = (id: string) => {
-    setConcernTypes(concernTypes.map(ct => 
-      ct.id === id ? { ...ct, isActive: !ct.isActive } : ct
-    ));
+  // Alle Einstellungen speichern
+  const handleSaveSettings = async () => {
+    setLoading(true);
+    try {
+      await saveSettings({
+        domains,
+        concern_texts: concernTexts,
+        concern_types: concernTypes
+      });
+      toast.success('Einstellungen erfolgreich gespeichert');
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      toast.error('Fehler beim Speichern der Einstellungen');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -262,26 +273,17 @@ const AdminSettings = () => {
                 <div className="space-y-2">
                   <Label>Aktuelle Domains</Label>
                   <div className="space-y-2">
-                    {domains.map((domain) => (
-                      <div key={domain.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    {domains.map((domain, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                         <div className="flex items-center gap-3">
-                          <span className="font-mono text-sm">{domain.domain}</span>
-                          <Badge variant={domain.isActive ? "default" : "secondary"}>
-                            {domain.isActive ? "Aktiv" : "Inaktiv"}
-                          </Badge>
+                          <span className="font-mono text-sm">{domain}</span>
+                          <Badge variant="default">Aktiv</Badge>
                         </div>
                         <div className="flex items-center gap-2">
                           <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleToggleDomain(domain.id)}
-                          >
-                            {domain.isActive ? "Deaktivieren" : "Aktivieren"}
-                          </Button>
-                          <Button
                             variant="destructive"
                             size="sm"
-                            onClick={() => handleDeleteDomain(domain.id)}
+                            onClick={() => handleDeleteDomain(domain)}
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -308,6 +310,15 @@ const AdminSettings = () => {
                     </Button>
                   </div>
                 </div>
+
+                <Button 
+                  onClick={handleSaveSettings}
+                  disabled={loading}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  Domain-Einstellungen speichern
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>
@@ -322,22 +333,22 @@ const AdminSettings = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {concernTexts.map((concernText) => (
-                  <div key={concernText.concern} className="space-y-2">
-                    <Label htmlFor={`text-${concernText.concern}`}>
-                      {concernText.concern}
+                {concernTypes.map((concern) => (
+                  <div key={concern} className="space-y-2">
+                    <Label htmlFor={`text-${concern}`}>
+                      {concern}
                     </Label>
                     <Textarea
-                      id={`text-${concernText.concern}`}
-                      value={concernText.text}
-                      onChange={(e) => handleUpdateConcernText(concernText.concern, e.target.value)}
+                      id={`text-${concern}`}
+                      value={concernTexts[concern] || ''}
+                      onChange={(e) => handleUpdateConcernText(concern, e.target.value)}
                       rows={3}
                       className="resize-none"
                     />
                   </div>
                 ))}
                 <Button 
-                  onClick={handleSaveConcernTexts}
+                  onClick={handleSaveSettings}
                   disabled={loading}
                   className="bg-blue-600 hover:bg-blue-700"
                 >
@@ -362,26 +373,17 @@ const AdminSettings = () => {
                 <div className="space-y-2">
                   <Label>Aktuelle Anliegen-Typen</Label>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {concernTypes.map((concern) => (
-                      <div key={concern.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    {concernTypes.map((concern, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                         <div className="flex items-center gap-3">
-                          <span className="font-medium">{concern.name}</span>
-                          <Badge variant={concern.isActive ? "default" : "secondary"}>
-                            {concern.isActive ? "Aktiv" : "Inaktiv"}
-                          </Badge>
+                          <span className="font-medium">{concern}</span>
+                          <Badge variant="default">Aktiv</Badge>
                         </div>
                         <div className="flex items-center gap-2">
                           <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleToggleConcernType(concern.id)}
-                          >
-                            {concern.isActive ? "Deaktivieren" : "Aktivieren"}
-                          </Button>
-                          <Button
                             variant="destructive"
                             size="sm"
-                            onClick={() => handleDeleteConcernType(concern.id, concern.name)}
+                            onClick={() => handleDeleteConcernType(concern)}
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -408,6 +410,15 @@ const AdminSettings = () => {
                     </Button>
                   </div>
                 </div>
+
+                <Button 
+                  onClick={handleSaveSettings}
+                  disabled={loading}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  Anliegen-Typen speichern
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>

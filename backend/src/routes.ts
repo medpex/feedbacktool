@@ -5,9 +5,20 @@ import { v4 as uuidv4 } from 'uuid';
 
 const router = Router();
 
-// Hilfsfunktion für Concern-Texte
-function getConcernText(concern: string): string {
-  const concernTexts: Record<string, string> = {
+// Hilfsfunktion für Concern-Texte aus der Datenbank
+async function getConcernText(concern: string): Promise<string> {
+  try {
+    const result = await pool.query('SELECT concern_texts FROM admin_settings ORDER BY created_at DESC LIMIT 1');
+    if (result.rows.length > 0 && result.rows[0].concern_texts) {
+      const concernTexts = result.rows[0].concern_texts;
+      return concernTexts[concern] || 'Wie war Ihre Erfahrung mit unserem Service?';
+    }
+  } catch (error) {
+    console.error('Error fetching concern texts:', error);
+  }
+  
+  // Fallback-Texte
+  const defaultConcernTexts: Record<string, string> = {
     'Internet-Freischaltung': 'Kürzlich wurde Ihr Internet freigeschaltet. Wie war Ihre Erfahrung mit unserem Service?',
     'Störung': 'Wir haben Ihre gemeldete Störung bearbeitet. Wie zufrieden sind Sie mit der Lösung?',
     'Servicebesuch': 'Unser Techniker war bei Ihnen vor Ort. Wie bewerten Sie den Servicebesuch?',
@@ -16,7 +27,20 @@ function getConcernText(concern: string): string {
     'Kündigung': 'Ihre Kündigung wurde bearbeitet. Wie bewerten Sie unseren Kündigungsprozess?',
     'Sonstiges': 'Wie war Ihre Erfahrung mit unserem Service?'
   };
-  return concernTexts[concern] || 'Wie war Ihre Erfahrung mit unserem Service?';
+  return defaultConcernTexts[concern] || 'Wie war Ihre Erfahrung mit unserem Service?';
+}
+
+// Hilfsfunktion für aktuelle Domain aus Einstellungen
+async function getBaseUrl(): Promise<string> {
+  try {
+    const result = await pool.query('SELECT domains FROM admin_settings ORDER BY created_at DESC LIMIT 1');
+    if (result.rows.length > 0 && result.rows[0].domains && result.rows[0].domains.length > 0) {
+      return result.rows[0].domains[0];
+    }
+  } catch (error) {
+    console.error('Error fetching domains:', error);
+  }
+  return 'https://feedback.home-ki.eu'; // Fallback
 }
 
 // POST /api/feedback-links
@@ -29,8 +53,8 @@ router.post('/feedback-links', async (req: Request, res: Response) => {
   
   const id = uuidv4();
   
-  // Verwende die feste Domain für die Feedback-Links
-  const baseUrl = 'https://feedback.home-ki.eu';
+  // Aktuelle Domain aus Einstellungen abrufen
+  const baseUrl = await getBaseUrl();
   
   // Kurzer Link - nur mit ref Parameter, alle anderen Daten werden über die Datenbank geladen
   const feedbackUrl = `${baseUrl}/?ref=${id}`;
@@ -44,13 +68,15 @@ router.post('/feedback-links', async (req: Request, res: Response) => {
       [id, customerNumber, concern, firstName, lastName, feedbackUrl, qrCodeUrl, createdAt, false]
     );
     
+    const concernText = await getConcernText(concern);
+    
     res.json({ 
       success: true, 
       data: { 
         id, 
         feedbackUrl, 
         qrCodeUrl, 
-        concernText: getConcernText(concern), 
+        concernText, 
         createdAt 
       } 
     });
@@ -198,7 +224,15 @@ router.get('/settings', async (req: Request, res: Response) => {
       };
       return res.json({ success: true, data: defaultSettings });
     }
-    res.json({ success: true, data: result.rows[0] });
+    
+    // Parse JSON fields
+    const settings = {
+      domains: result.rows[0].domains,
+      concern_texts: result.rows[0].concern_texts,
+      concern_types: result.rows[0].concern_types
+    };
+    
+    res.json({ success: true, data: settings });
   } catch (err) {
     console.error('DB error (get settings):', err);
     res.status(500).json({ success: false, error: 'Database error' });
@@ -208,6 +242,8 @@ router.get('/settings', async (req: Request, res: Response) => {
 // POST /api/settings
 router.post('/settings', async (req: Request, res: Response) => {
   const { domains, concern_texts, concern_types } = req.body;
+  
+  console.log('Saving settings:', { domains, concern_texts, concern_types });
   
   if (!domains || !concern_texts || !concern_types) {
     return res.status(400).json({ success: false, error: 'Missing required fields' });
@@ -223,6 +259,7 @@ router.post('/settings', async (req: Request, res: Response) => {
       [id, JSON.stringify(domains), JSON.stringify(concern_texts), JSON.stringify(concern_types), createdAt]
     );
     
+    console.log('Settings saved successfully');
     res.json({ success: true });
   } catch (err) {
     console.error('DB error (save settings):', err);
@@ -233,6 +270,8 @@ router.post('/settings', async (req: Request, res: Response) => {
 // POST /api/admin-credentials
 router.post('/admin-credentials', async (req: Request, res: Response) => {
   const { username, password } = req.body;
+  
+  console.log('Saving admin credentials for user:', username);
   
   if (!username || !password) {
     return res.status(400).json({ success: false, error: 'Username and password required' });
@@ -248,6 +287,7 @@ router.post('/admin-credentials', async (req: Request, res: Response) => {
       [username, password, new Date().toISOString()]
     );
     
+    console.log('Admin credentials saved successfully');
     res.json({ success: true });
   } catch (err) {
     console.error('DB error (save credentials):', err);

@@ -15,6 +15,8 @@ const Admin = () => {
   const handleLogout = () => {
     setIsAuthenticated(false);
     sessionStorage.removeItem('adminAuth');
+    // Seite neu laden um sicherzustellen, dass alle Daten zurückgesetzt werden
+    window.location.reload();
   };
 
   // Check if already authenticated on component mount
