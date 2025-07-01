@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { CheckCircle, MessageSquare } from 'lucide-react';
+import { CheckCircle, MessageSquare, AlertCircle } from 'lucide-react';
 import StarRating from './StarRating';
 import { submitFeedback, fetchLinkById } from '@/lib/api';
 
@@ -47,7 +46,13 @@ const CustomerFeedback = () => {
       try {
         const data = await fetchLinkById(refId);
         setLinkData(data);
-        setError(null);
+        
+        // Prüfen, ob der Link bereits verwendet wurde
+        if (data.used) {
+          setError('Link bereits verwendet');
+        } else {
+          setError(null);
+        }
       } catch (err) {
         console.error('Error loading link data:', err);
         setError('Link nicht gefunden oder abgelaufen');
@@ -101,22 +106,38 @@ const CustomerFeedback = () => {
     );
   }
 
-  // Error state
+  // Error state - erweitert für bereits verwendete Links
   if (error || !linkData) {
+    const isUsedLink = error === 'Link bereits verwendet';
+    
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 to-red-100 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md mx-auto shadow-xl border-red-200">
+      <div className={`min-h-screen bg-gradient-to-br ${isUsedLink ? 'from-orange-50 to-orange-100' : 'from-red-50 to-red-100'} flex items-center justify-center p-4`}>
+        <Card className={`w-full max-w-md mx-auto shadow-xl ${isUsedLink ? 'border-orange-200' : 'border-red-200'}`}>
           <CardContent className="p-8 text-center">
-            <h2 className="text-xl font-bold text-red-900 mb-4">Ungültiger Link</h2>
-            <p className="text-red-700">
-              {error || 'Dieser Feedback-Link ist ungültig oder abgelaufen. Bitte verwenden Sie den korrekten Link aus Ihrer E-Mail.'}
+            <div className="mb-4">
+              <AlertCircle className={`w-16 h-16 mx-auto ${isUsedLink ? 'text-orange-500' : 'text-red-500'}`} />
+            </div>
+            <h2 className={`text-xl font-bold mb-4 ${isUsedLink ? 'text-orange-900' : 'text-red-900'}`}>
+              {isUsedLink ? 'Feedback bereits abgegeben' : 'Ungültiger Link'}
+            </h2>
+            <p className={`${isUsedLink ? 'text-orange-700' : 'text-red-700'}`}>
+              {isUsedLink 
+                ? 'Sie haben bereits Feedback über diesen Link abgegeben. Jeder Link kann nur einmal verwendet werden.' 
+                : (error || 'Dieser Feedback-Link ist ungültig oder abgelaufen. Bitte verwenden Sie den korrekten Link aus Ihrer E-Mail.')
+              }
             </p>
+            {isUsedLink && linkData && (
+              <p className="text-sm text-gray-500 mt-4">
+                Vielen Dank für Ihr Feedback, {linkData.first_name}!
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
     );
   }
 
+  // Success state
   if (isSubmitted) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
@@ -150,6 +171,7 @@ const CustomerFeedback = () => {
     );
   }
 
+  // Main form rendering
   const concernText = getConcernText(linkData.concern);
   const customerName = `${linkData.first_name} ${linkData.last_name}`;
 
