@@ -1,4 +1,3 @@
-
 import { Router, Request, Response } from 'express';
 import { pool } from './db';
 import { Feedback, FeedbackLink } from './models';
@@ -30,25 +29,11 @@ router.post('/feedback-links', async (req: Request, res: Response) => {
   
   const id = uuidv4();
   
-  // Dynamische Base URL basierend auf Request-Header oder Environment
-  let baseUrl = process.env.FRONTEND_URL;
-  if (!baseUrl) {
-    // Fallback: URL aus Request-Header ableiten
-    const protocol = req.get('X-Forwarded-Proto') || (req.secure ? 'https' : 'http');
-    const host = req.get('X-Forwarded-Host') || req.get('Host') || 'localhost:3000';
-    baseUrl = `${protocol}://${host}`;
-  }
+  // Verwende die feste Domain für die Feedback-Links
+  const baseUrl = 'https://feedback.home-ki.eu';
   
-  // Parameter für den Feedback-Link zusammenstellen
-  const params = new URLSearchParams({
-    ref: id,
-    customer: customerNumber,
-    name: `${firstName} ${lastName}`,
-    concern: concern,
-    text: getConcernText(concern)
-  });
-  
-  const feedbackUrl = `${baseUrl}/?${params.toString()}`;
+  // Kurzer Link - nur mit ref Parameter, alle anderen Daten werden über die Datenbank geladen
+  const feedbackUrl = `${baseUrl}/?ref=${id}`;
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(feedbackUrl)}`;
   const createdAt = new Date().toISOString();
   
