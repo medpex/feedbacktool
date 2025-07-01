@@ -81,11 +81,11 @@ function mapLinkRow(row: any): FeedbackLink {
     id: row.id,
     customer_number: row.customer_number,
     concern: row.concern,
-    firstName: row.first_name,
-    lastName: row.last_name,
-    feedbackUrl: row.feedback_url,
-    qrCodeUrl: row.qr_code_url,
-    createdAt: row.created_at,
+    first_name: row.first_name,
+    last_name: row.last_name,
+    feedback_url: row.feedback_url,
+    qr_code_url: row.qr_code_url,
+    created_at: row.created_at,
     used: row.used
   };
 }
