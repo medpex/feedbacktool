@@ -1,11 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { CheckCircle, MessageSquare } from 'lucide-react';
 import StarRating from './StarRating';
-import { submitFeedback } from '@/lib/api';
+import { submitFeedback, fetchLinkById } from '@/lib/api';
 
 const CustomerFeedback = () => {
   const [step, setStep] = useState(1);
@@ -13,14 +13,51 @@ const CustomerFeedback = () => {
   const [feedback, setFeedback] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [linkData, setLinkData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // URL Parameter auslesen
   const urlParams = new URLSearchParams(window.location.search);
-  const customerNumber = urlParams.get('customer') || '';
-  const customerName = urlParams.get('name') || '';
-  const concern = urlParams.get('concern') || '';
-  const concernText = urlParams.get('text') || 'Wie war Ihre Erfahrung mit unserem Service?';
   const refId = urlParams.get('ref') || '';
+
+  // Hilfsfunktion für Concern-Texte
+  const getConcernText = (concern: string): string => {
+    const concernTexts: Record<string, string> = {
+      'Internet-Freischaltung': 'Kürzlich wurde Ihr Internet freigeschaltet. Wie war Ihre Erfahrung mit unserem Service?',
+      'Störung': 'Wir haben Ihre gemeldete Störung bearbeitet. Wie zufrieden sind Sie mit der Lösung?',
+      'Servicebesuch': 'Unser Techniker war bei Ihnen vor Ort. Wie bewerten Sie den Servicebesuch?',
+      'Beratung': 'Sie haben eine Beratung bei uns erhalten. Wie hilfreich war unser Beratungsgespräch?',
+      'Rechnung': 'Bezüglich Ihrer Rechnungsanfrage: Wie zufrieden sind Sie mit der Bearbeitung?',
+      'Kündigung': 'Ihre Kündigung wurde bearbeitet. Wie bewerten Sie unseren Kündigungsprozess?',
+      'Sonstiges': 'Wie war Ihre Erfahrung mit unserem Service?'
+    };
+    return concernTexts[concern] || 'Wie war Ihre Erfahrung mit unserem Service?';
+  };
+
+  // Link-Daten laden
+  useEffect(() => {
+    if (!refId) {
+      setError('Ungültiger Link');
+      setIsLoading(false);
+      return;
+    }
+
+    const loadLinkData = async () => {
+      try {
+        const data = await fetchLinkById(refId);
+        setLinkData(data);
+        setError(null);
+      } catch (err) {
+        console.error('Error loading link data:', err);
+        setError('Link nicht gefunden oder abgelaufen');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadLinkData();
+  }, [refId]);
 
   const handleRatingSubmit = () => {
     if (rating > 0) {
@@ -34,9 +71,9 @@ const CustomerFeedback = () => {
       await submitFeedback({
         rating,
         comment: feedback,
-        customer: customerNumber || 'Anonymous',
-        customerName,
-        concern,
+        customer: linkData?.customer_number || 'Anonymous',
+        customerName: linkData ? `${linkData.first_name} ${linkData.last_name}` : '',
+        concern: linkData?.concern || '',
         refId
       });
       setIsSubmitted(true);
@@ -51,15 +88,28 @@ const CustomerFeedback = () => {
     handleFeedbackSubmit();
   };
 
-  // Validierung des refId
-  if (!refId) {
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md mx-auto shadow-xl border-0">
+          <CardContent className="p-8 text-center">
+            <p className="text-gray-600">Lade Feedback-Formular...</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error || !linkData) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-red-50 to-red-100 flex items-center justify-center p-4">
         <Card className="w-full max-w-md mx-auto shadow-xl border-red-200">
           <CardContent className="p-8 text-center">
             <h2 className="text-xl font-bold text-red-900 mb-4">Ungültiger Link</h2>
             <p className="text-red-700">
-              Dieser Feedback-Link ist ungültig oder abgelaufen. Bitte verwenden Sie den korrekten Link aus Ihrer E-Mail.
+              {error || 'Dieser Feedback-Link ist ungültig oder abgelaufen. Bitte verwenden Sie den korrekten Link aus Ihrer E-Mail.'}
             </p>
           </CardContent>
         </Card>
@@ -75,14 +125,14 @@ const CustomerFeedback = () => {
             <div className="mb-6">
               <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
               <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                Vielen Dank{customerName ? `, ${customerName}` : ''}!
+                Vielen Dank, {linkData.first_name}!
               </h2>
               <p className="text-gray-600">
                 Ihr Feedback wurde erfolgreich übermittelt. Wir schätzen Ihre Bewertung sehr.
               </p>
-              {concern && (
+              {linkData.concern && (
                 <p className="text-sm text-gray-500 mt-2">
-                  Bezüglich: {concern}
+                  Bezüglich: {linkData.concern}
                 </p>
               )}
             </div>
@@ -100,19 +150,22 @@ const CustomerFeedback = () => {
     );
   }
 
+  const concernText = getConcernText(linkData.concern);
+  const customerName = `${linkData.first_name} ${linkData.last_name}`;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <Card className="w-full max-w-md mx-auto shadow-xl border-0">
         <CardHeader className="text-center pb-4">
           <CardTitle className="text-2xl font-bold text-gray-900">
-            {customerName ? `Hallo ${customerName}` : 'Hallo'}
+            Hallo {linkData.first_name}
           </CardTitle>
           <p className="text-gray-600 mt-2">
             {concernText}
           </p>
-          {customerNumber && (
+          {linkData.customer_number && (
             <p className="text-xs text-gray-500 mt-1">
-              Kundennummer: {customerNumber}
+              Kundennummer: {linkData.customer_number}
             </p>
           )}
         </CardHeader>
