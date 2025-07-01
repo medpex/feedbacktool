@@ -19,8 +19,8 @@ Ein schlankes, nutzerfreundliches Feedback-System mit Kunden-Landingpage und Adm
 
 1. **Repository klonen**
 ```bash
-git clone https://github.com/IHR-USERNAME/IHR-REPO-NAME.git
-cd IHR-REPO-NAME
+[git clone https://github.com/medpex/quick-review-compass]
+cd quick-review-compass
 ```
 
 2. **Mit Docker Compose starten**
