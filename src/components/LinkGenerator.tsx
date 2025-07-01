@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,13 +10,13 @@ import { createLink, fetchLinks, deleteLink } from '@/lib/api';
 
 interface FeedbackLink {
   id: string;
-  customerNumber: string;
+  customer_number: string;
   concern: string;
-  firstName: string;
-  lastName: string;
-  feedbackUrl: string;
-  qrCodeUrl: string;
-  createdAt: string;
+  first_name: string;
+  last_name: string;
+  feedback_url: string;
+  qr_code_url: string;
+  created_at: string;
   used: boolean;
 }
 
@@ -334,11 +333,11 @@ const LinkGenerator = () => {
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                     <div>
                       <h4 className="font-medium text-gray-900">
-                        {link.firstName} {link.lastName} - {link.customerNumber}
+                        {link.first_name} {link.last_name} - {link.customer_number}
                       </h4>
                       <p className="text-sm text-gray-600">{link.concern}</p>
                       <p className="text-xs text-gray-500">
-                        Erstellt: {new Date(link.createdAt).toLocaleDateString('de-DE')}
+                        Erstellt: {new Date(link.created_at).toLocaleDateString('de-DE')}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -365,14 +364,14 @@ const LinkGenerator = () => {
                       <Label className="text-sm font-medium">Feedback-Link</Label>
                       <div className="flex gap-2">
                         <Input 
-                          value={link.feedbackUrl} 
+                          value={link.feedback_url} 
                           readOnly 
                           className="text-sm"
                         />
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => copyToClipboard(link.feedbackUrl)}
+                          onClick={() => copyToClipboard(link.feedback_url)}
                         >
                           <Copy className="w-4 h-4" />
                         </Button>
@@ -383,14 +382,14 @@ const LinkGenerator = () => {
                       <Label className="text-sm font-medium">QR-Code</Label>
                       <div className="flex items-center gap-2">
                         <img 
-                          src={link.qrCodeUrl} 
+                          src={link.qr_code_url} 
                           alt="QR Code" 
                           className="w-12 h-12 border rounded"
                         />
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => downloadQRCode(link.qrCodeUrl, `${link.customerNumber}-${link.id}`)}
+                          onClick={() => downloadQRCode(link.qr_code_url, `${link.customer_number}-${link.id}`)}
                         >
                           <Download className="w-4 h-4 mr-1" />
                           Download
