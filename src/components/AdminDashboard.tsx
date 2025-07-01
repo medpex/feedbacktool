@@ -15,11 +15,13 @@ import {
   MessageSquare,
   Calendar,
   Link as LinkIcon,
-  BarChart3
+  BarChart3,
+  Settings
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import StarRating from './StarRating';
 import LinkGenerator from './LinkGenerator';
+import AdminSettings from './AdminSettings';
 import { fetchFeedback } from '@/lib/api';
 
 interface FeedbackItem {
@@ -131,7 +133,7 @@ const AdminDashboard = () => {
 
         {/* Main Tabs */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4" />
               Übersicht
@@ -143,6 +145,10 @@ const AdminDashboard = () => {
             <TabsTrigger value="feedback" className="flex items-center gap-2">
               <MessageSquare className="w-4 h-4" />
               Bewertungen
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center gap-2">
+              <Settings className="w-4 h-4" />
+              Einstellungen
             </TabsTrigger>
           </TabsList>
 
@@ -349,6 +355,10 @@ const AdminDashboard = () => {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <AdminSettings />
           </TabsContent>
         </Tabs>
       </div>

@@ -1,4 +1,3 @@
-
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 export async function fetchFeedback() {
@@ -75,5 +74,32 @@ export async function deleteLink(id: string) {
     throw new Error(errorData.error || 'Fehler beim Löschen des Links');
   }
   
+  return await res.json();
+}
+
+export async function fetchSettings() {
+  const res = await fetch(`${API_URL}/settings`);
+  if (!res.ok) throw new Error('Fehler beim Laden der Einstellungen');
+  const data = await res.json();
+  return data.data;
+}
+
+export async function saveSettings(settings: any) {
+  const res = await fetch(`${API_URL}/settings`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(settings),
+  });
+  if (!res.ok) throw new Error('Fehler beim Speichern der Einstellungen');
+  return await res.json();
+}
+
+export async function saveAdminCredentials(credentials: any) {
+  const res = await fetch(`${API_URL}/admin-credentials`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(credentials),
+  });
+  if (!res.ok) throw new Error('Fehler beim Speichern der Zugangsdaten');
   return await res.json();
 }

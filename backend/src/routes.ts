@@ -167,4 +167,92 @@ router.delete('/feedback-links/:id', async (req: Request, res: Response) => {
   }
 });
 
+// Settings routes
+
+// GET /api/settings
+router.get('/settings', async (req: Request, res: Response) => {
+  try {
+    const result = await pool.query('SELECT * FROM admin_settings ORDER BY created_at DESC LIMIT 1');
+    if (result.rows.length === 0) {
+      // Default settings if none exist
+      const defaultSettings = {
+        domains: ['https://feedback.home-ki.eu'],
+        concern_texts: {
+          'Internet-Freischaltung': 'Kürzlich wurde Ihr Internet freigeschaltet. Wie war Ihre Erfahrung mit unserem Service?',
+          'Störung': 'Wir haben Ihre gemeldete Störung bearbeitet. Wie zufrieden sind Sie mit der Lösung?',
+          'Servicebesuch': 'Unser Techniker war bei Ihnen vor Ort. Wie bewerten Sie den Servicebesuch?',
+          'Beratung': 'Sie haben eine Beratung bei uns erhalten. Wie hilfreich war unser Beratungsgespräch?',
+          'Rechnung': 'Bezüglich Ihrer Rechnungsanfrage: Wie zufrieden sind Sie mit der Bearbeitung?',
+          'Kündigung': 'Ihre Kündigung wurde bearbeitet. Wie bewerten Sie unseren Kündigungsprozess?',
+          'Sonstiges': 'Wie war Ihre Erfahrung mit unserem Service?'
+        },
+        concern_types: [
+          'Internet-Freischaltung',
+          'Störung', 
+          'Servicebesuch',
+          'Beratung',
+          'Rechnung',
+          'Kündigung',
+          'Sonstiges'
+        ]
+      };
+      return res.json({ success: true, data: defaultSettings });
+    }
+    res.json({ success: true, data: result.rows[0] });
+  } catch (err) {
+    console.error('DB error (get settings):', err);
+    res.status(500).json({ success: false, error: 'Database error' });
+  }
+});
+
+// POST /api/settings
+router.post('/settings', async (req: Request, res: Response) => {
+  const { domains, concern_texts, concern_types } = req.body;
+  
+  if (!domains || !concern_texts || !concern_types) {
+    return res.status(400).json({ success: false, error: 'Missing required fields' });
+  }
+  
+  const id = uuidv4();
+  const createdAt = new Date().toISOString();
+  
+  try {
+    await pool.query(
+      `INSERT INTO admin_settings (id, domains, concern_texts, concern_types, created_at)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [id, JSON.stringify(domains), JSON.stringify(concern_texts), JSON.stringify(concern_types), createdAt]
+    );
+    
+    res.json({ success: true });
+  } catch (err) {
+    console.error('DB error (save settings):', err);
+    res.status(500).json({ success: false, error: 'Database error' });
+  }
+});
+
+// POST /api/admin-credentials
+router.post('/admin-credentials', async (req: Request, res: Response) => {
+  const { username, password } = req.body;
+  
+  if (!username || !password) {
+    return res.status(400).json({ success: false, error: 'Username and password required' });
+  }
+  
+  try {
+    // In einer echten Anwendung würde das Passwort gehashed werden
+    await pool.query(
+      `INSERT INTO admin_credentials (username, password, updated_at) 
+       VALUES ($1, $2, $3)
+       ON CONFLICT (username) 
+       DO UPDATE SET password = $2, updated_at = $3`,
+      [username, password, new Date().toISOString()]
+    );
+    
+    res.json({ success: true });
+  } catch (err) {
+    console.error('DB error (save credentials):', err);
+    res.status(500).json({ success: false, error: 'Database error' });
+  }
+});
+
 export default router;
