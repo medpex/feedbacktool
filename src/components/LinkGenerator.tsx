@@ -4,9 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { QrCode, Link, Copy, Download, Plus, Code, Trash2 } from 'lucide-react';
+import { Copy, Download, Plus, Code, Trash2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { createLink, fetchLinks, deleteLink } from '@/lib/api';
 
@@ -34,15 +33,12 @@ const LinkGenerator = () => {
 
   // Load existing links from API
   React.useEffect(() => {
-    console.log('LinkGenerator: Component mounted, loading feedback links...');
-    console.log('LinkGenerator: Current API_URL from env:', import.meta.env.VITE_API_URL);
     fetchLinks()
       .then(links => {
-        console.log('LinkGenerator: Successfully loaded links:', links);
         setGeneratedLinks(links);
       })
       .catch(error => {
-        console.error('LinkGenerator: Error loading links:', error);
+        console.error('Error loading links:', error);
         setGeneratedLinks([]);
         toast({
           title: "Fehler beim Laden",
@@ -51,10 +47,6 @@ const LinkGenerator = () => {
         });
       });
   }, []);
-
-  const generateQRCode = (url: string): string => {
-    return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
-  };
 
   const getConcernText = (concern: string): string => {
     const concernTexts: Record<string, string> = {
@@ -72,10 +64,7 @@ const LinkGenerator = () => {
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    console.log('LinkGenerator: handleGenerate called with:', { customerNumber, concern, firstName, lastName });
-    
     if (!customerNumber || !concern || !firstName || !lastName) {
-      console.log('LinkGenerator: Validation failed - missing fields');
       toast({
         title: "Fehler",
         description: "Bitte füllen Sie alle Felder aus.",
@@ -87,21 +76,15 @@ const LinkGenerator = () => {
     setIsGenerating(true);
 
     try {
-      console.log('LinkGenerator: Creating link with data:', { customerNumber, concern, firstName, lastName });
-      
-      const newLink = await createLink({
+      await createLink({
         customerNumber,
         concern,
         firstName,
         lastName
       });
       
-      console.log('LinkGenerator: Successfully created link:', newLink);
-      
       // Reload all links to get the updated list
-      console.log('LinkGenerator: Reloading all links...');
       const links = await fetchLinks();
-      console.log('LinkGenerator: Reloaded links:', links);
       setGeneratedLinks(links);
       
       // Clear form
@@ -115,7 +98,6 @@ const LinkGenerator = () => {
         description: "Feedback-Link und QR-Code wurden erfolgreich erstellt.",
       });
     } catch (error) {
-      console.error('LinkGenerator: Error creating link:', error);
       toast({
         title: "Fehler",
         description: `Beim Generieren des Links ist ein Fehler aufgetreten: ${error instanceof Error ? error.message : 'Unbekannter Fehler'}`,
@@ -127,27 +109,19 @@ const LinkGenerator = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (deletingId) {
-      console.log('LinkGenerator: Delete already in progress, ignoring request');
-      return; // Prevent multiple simultaneous deletions
-    }
+    if (deletingId) return;
     
     if (!window.confirm('Diesen Link wirklich löschen?')) {
       return;
     }
     
-    console.log('LinkGenerator: handleDelete called with id:', id);
     setDeletingId(id);
     
     try {
-      console.log('LinkGenerator: Deleting link with id:', id);
       await deleteLink(id);
-      console.log('LinkGenerator: Successfully deleted link:', id);
       
       // Reload links after successful deletion
-      console.log('LinkGenerator: Reloading links after deletion...');
       const links = await fetchLinks();
-      console.log('LinkGenerator: Reloaded links after deletion:', links);
       setGeneratedLinks(links);
       
       toast({
@@ -155,7 +129,6 @@ const LinkGenerator = () => {
         description: "Der Feedback-Link wurde erfolgreich gelöscht.",
       });
     } catch (error) {
-      console.error('LinkGenerator: Error deleting link:', error);
       toast({
         title: "Fehler beim Löschen",
         description: error instanceof Error ? error.message : "Beim Löschen des Links ist ein Fehler aufgetreten.",
@@ -222,17 +195,6 @@ const LinkGenerator = () => {
 
   return (
     <div className="space-y-6">
-      {/* Debug Info */}
-      <Card className="bg-yellow-50 border-yellow-200">
-        <CardContent className="pt-4">
-          <p className="text-sm text-yellow-800">
-            <strong>Debug Info:</strong> API URL = {import.meta.env.VITE_API_URL || '/api'} | 
-            Links geladen: {generatedLinks.length} | 
-            Browser URL: {window.location.origin}
-          </p>
-        </CardContent>
-      </Card>
-
       {/* API Documentation */}
       <Card>
         <CardHeader>
@@ -263,46 +225,8 @@ const LinkGenerator = () => {
 }`}
                 </pre>
               </div>
-              <p className="text-sm text-gray-600 mt-2 mb-2">Response:</p>
-              <div className="bg-white p-3 rounded border">
-                <pre className="text-xs overflow-x-auto">
-{`{
-  "success": true,
-  "data": {
-    "id": "1703123456789abc123",
-    "feedbackUrl": "https://yourdomain.com/?ref=...",
-    "qrCodeUrl": "https://api.qrserver.com/v1/create-qr-code/...",
-    "concernText": "Kürzlich wurde Ihr Internet freigeschaltet...",
-    "createdAt": "2024-06-30T10:00:00.000Z"
-  }
-}`}
-                </pre>
-              </div>
             </div>
             
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h4 className="font-semibold mb-2">GET /api/feedback-links/:id</h4>
-              <p className="text-sm text-gray-600 mb-2">Ruft Details eines Feedback-Links ab</p>
-              <div className="bg-white p-3 rounded border">
-                <pre className="text-xs overflow-x-auto">
-{`{
-  "success": true,
-  "data": {
-    "id": "1703123456789abc123",
-    "customerNumber": "K-12345",
-    "firstName": "Max",
-    "lastName": "Mustermann",
-    "concern": "Internet-Freischaltung",
-    "feedbackUrl": "https://yourdomain.com/?ref=...",
-    "qrCodeUrl": "https://api.qrserver.com/v1/create-qr-code/...",
-    "used": false,
-    "createdAt": "2024-06-30T10:00:00.000Z"
-  }
-}`}
-                </pre>
-              </div>
-            </div>
-
             <div className="bg-blue-50 p-4 rounded-lg">
               <h4 className="font-semibold mb-2">n8n Workflow Beispiel</h4>
               <p className="text-sm text-gray-600 mb-2">1. HTTP Request Node konfigurieren:</p>
@@ -312,7 +236,6 @@ const LinkGenerator = () => {
                 <li>Headers: Content-Type: application/json</li>
                 <li>Body: JSON mit customerNumber, firstName, lastName, concern</li>
               </ul>
-              <p className="text-sm text-gray-600 mt-2">2. Response enthält feedbackUrl und qrCodeUrl für E-Mail-Versand</p>
             </div>
           </CardContent>
         )}
@@ -416,9 +339,6 @@ const LinkGenerator = () => {
                       <p className="text-sm text-gray-600">{link.concern}</p>
                       <p className="text-xs text-gray-500">
                         Erstellt: {new Date(link.createdAt).toLocaleDateString('de-DE')}
-                      </p>
-                      <p className="text-xs text-blue-600 mt-1">
-                        Text: {getConcernText(link.concern)}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">

@@ -1,8 +1,9 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { CheckCircle, MessageSquare, Star as StarIcon } from 'lucide-react';
+import { CheckCircle, MessageSquare } from 'lucide-react';
 import StarRating from './StarRating';
 import { submitFeedback } from '@/lib/api';
 
@@ -21,16 +22,6 @@ const CustomerFeedback = () => {
   const concernText = urlParams.get('text') || 'Wie war Ihre Erfahrung mit unserem Service?';
   const refId = urlParams.get('ref') || '';
 
-  // Debug-Informationen loggen
-  console.log('CustomerFeedback: URL Parameters:', {
-    customer: customerNumber,
-    name: customerName,
-    concern: concern,
-    text: concernText,
-    ref: refId,
-    fullUrl: window.location.href
-  });
-
   const handleRatingSubmit = () => {
     if (rating > 0) {
       setStep(2);
@@ -40,15 +31,6 @@ const CustomerFeedback = () => {
   const handleFeedbackSubmit = async () => {
     setIsSubmitting(true);
     try {
-      console.log('CustomerFeedback: Submitting feedback with data:', {
-        rating,
-        comment: feedback,
-        customer: customerNumber || 'Anonymous',
-        customerName,
-        concern,
-        refId
-      });
-      
       await submitFeedback({
         rating,
         comment: feedback,
@@ -59,8 +41,8 @@ const CustomerFeedback = () => {
       });
       setIsSubmitted(true);
     } catch (e) {
-      console.error('CustomerFeedback: Error submitting feedback:', e);
-      // Fehlerbehandlung (optional Toast)
+      console.error('Error submitting feedback:', e);
+      // Fehlerbehandlung könnte hier erweitert werden
     }
     setIsSubmitting(false);
   };
@@ -69,22 +51,15 @@ const CustomerFeedback = () => {
     handleFeedbackSubmit();
   };
 
-  // Debug-Panel anzeigen wenn kein refId vorhanden ist
+  // Validierung des refId
   if (!refId) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-red-50 to-red-100 flex items-center justify-center p-4">
         <Card className="w-full max-w-md mx-auto shadow-xl border-red-200">
           <CardContent className="p-8 text-center">
-            <h2 className="text-xl font-bold text-red-900 mb-4">Debug Information</h2>
-            <div className="text-left bg-red-50 p-4 rounded">
-              <p className="text-sm"><strong>Current URL:</strong> {window.location.href}</p>
-              <p className="text-sm"><strong>Customer:</strong> {customerNumber || 'Not found'}</p>
-              <p className="text-sm"><strong>Name:</strong> {customerName || 'Not found'}</p>
-              <p className="text-sm"><strong>Concern:</strong> {concern || 'Not found'}</p>
-              <p className="text-sm"><strong>Ref ID:</strong> {refId || 'Missing!'}</p>
-            </div>
-            <p className="text-red-700 mt-4">
-              Kein gültiger Feedback-Link. Bitte verwenden Sie den generierten Link.
+            <h2 className="text-xl font-bold text-red-900 mb-4">Ungültiger Link</h2>
+            <p className="text-red-700">
+              Dieser Feedback-Link ist ungültig oder abgelaufen. Bitte verwenden Sie den korrekten Link aus Ihrer E-Mail.
             </p>
           </CardContent>
         </Card>
