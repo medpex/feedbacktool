@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Lock, User, Eye, EyeOff } from 'lucide-react';
+import { adminLogin } from '@/lib/api';
 
 interface AdminLoginProps {
   onLogin: () => void;
@@ -23,21 +24,11 @@ const AdminLogin = ({ onLogin }: AdminLoginProps) => {
     setError('');
 
     try {
-      // Authenticate against database
-      const response = await fetch('/api/admin-login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-      });
-
-      if (response.ok) {
-        onLogin();
-      } else {
-        setError('Benutzername oder Passwort ist falsch');
-      }
-    } catch (error) {
+      await adminLogin({ username, password });
+      onLogin();
+    } catch (error: any) {
       console.error('Login error:', error);
-      setError('Anmeldung fehlgeschlagen');
+      setError('Benutzername oder Passwort ist falsch');
     }
     
     setIsLoading(false);
