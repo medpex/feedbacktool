@@ -189,11 +189,13 @@ const CustomerFeedback: React.FC<FeedbackFormProps> = ({ refId }) => {
               <Label className="text-lg font-medium mb-4 block">
                 Wie bewerten Sie unseren Service?
               </Label>
-              <StarRating
-                rating={rating}
-                onRatingChange={setRating}
-                size={40}
-              />
+              <div className="flex justify-center">
+                <StarRating
+                  rating={rating}
+                  onRatingChange={setRating}
+                  size={40}
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
