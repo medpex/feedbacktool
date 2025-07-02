@@ -30,15 +30,19 @@ fi
 
 echo "🐳 Using Docker Compose command: $DOCKER_COMPOSE"
 
-# Stop and remove existing containers
-echo "📦 Stopping existing containers..."
-$DOCKER_COMPOSE down -v
+# Stop only frontend and backend containers (preserve database)
+echo "📦 Stopping frontend and backend containers..."
+$DOCKER_COMPOSE stop frontend backend
 
-# Build containers
-echo "🔨 Building containers..."
-$DOCKER_COMPOSE build --no-cache
+# Remove only frontend and backend containers (preserve database)
+echo "🗑️ Removing frontend and backend containers..."
+$DOCKER_COMPOSE rm -f frontend backend
 
-# Start services
+# Build only frontend and backend containers
+echo "🔨 Building frontend and backend containers..."
+$DOCKER_COMPOSE build --no-cache frontend backend
+
+# Start all services (database will continue running if already started)
 echo "🏃 Starting services..."
 $DOCKER_COMPOSE up -d
 
@@ -57,3 +61,4 @@ echo "Admin: $FRONTEND_URL/admin (admin/admin123)"
 echo ""
 echo "To view logs: $DOCKER_COMPOSE logs -f"
 echo "To stop: $DOCKER_COMPOSE down"
+echo "To reset database: $DOCKER_COMPOSE down -v && $DOCKER_COMPOSE up -d"
